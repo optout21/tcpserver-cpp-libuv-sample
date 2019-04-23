@@ -232,7 +232,7 @@ int NetHandler::doBindAndListen(int port_in)
         cerr << "Bind error " << ::uv_strerror(res) << endl;
         return res;
     }
-    server->data = (void*)((IUvSocket*)this);
+    server->data = (void*)dynamic_cast<IUvSocket*>(this);
     res = ::uv_listen((uv_stream_t*)server, 10, NetHandler::on_new_connection);
     if (res)
     {

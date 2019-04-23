@@ -2,6 +2,8 @@
 
 #include "../lib/net_client.hpp"
 
+#include <uv.h>
+
 #include <string>
 
 namespace sample
@@ -13,6 +15,8 @@ namespace sample
     public:
         PeerClientOut(BaseApp* app_in, std::string const & host_in, int port_in);
         virtual void process();
+        static void on_timer(uv_timer_t* handle);
+        void onTimer(uv_timer_t* handle);
 
     private:
         int mySendCounter;

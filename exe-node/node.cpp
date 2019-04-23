@@ -29,18 +29,20 @@ void NodeApp::listenStarted(int port)
 
     // create and connect clients
     int n = 3;
-    auto clis = new NetClientBase*[n];
+    //auto clis = new NetClientBase*[n];
     // try to connect to clients
     for (int i = 0; i < n; ++i)
     {
         int port1 = 5000 + i;
-        clis[i] = nullptr;
+        //clis[i] = nullptr;
         // skip connection to self
         if (port != port1)
         {
-            auto nc = new PeerClientOut(this, "localhost", port1);
-            clis[i] = nc;
-            int res = nc->connect();
+            string name = "localhost:" + to_string(port1);
+            auto peerout = make_shared<PeerClientOut>(this, "localhost", port1);
+            auto cli = dynamic_pointer_cast<NetClientBase>(peerout);
+            myOutClients[name] = cli;
+            int res = peerout->connect();
             if (res)
             {
                 // error
@@ -59,7 +61,7 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
-    myClients[cliaddr] = client_in;
+    myInClients[cliaddr] = client_in;
 }
 
 void NodeApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
@@ -67,11 +69,19 @@ void NodeApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: Connection done: " << cliaddr << endl;
-    for(auto i = myClients.begin(); i != myClients.end(); ++i)
+    for(auto i = myInClients.begin(); i != myInClients.end(); ++i)
     {
         if (i->second.get() == client_in.get())
         {
-            myClients.erase(i->first);
+            myInClients.erase(i->first);
+            break;
+        }
+    }
+    for(auto i = myOutClients.begin(); i != myOutClients.end(); ++i)
+    {
+        if (i->second.get() == client_in.get())
+        {
+            myOutClients.erase(i->first);
             break;
         }
     }

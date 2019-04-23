@@ -6,15 +6,19 @@
 
 namespace sample
 {
-    // A class reacting to socket events
+    /*
+     * A class reacting to socket events.
+     * Not really an interface, as empty implemetations are contained for convenience.
+     */
     class IUvSocket
     {
     public:
-        virtual void onConnect(uv_connect_t* req, int status) = 0;
-        virtual void onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) = 0;
-        virtual void onWrite(uv_write_t* req, int status) = 0;
-        virtual void onNewConnection(uv_stream_t* server, int status) = 0;
-        virtual void onClose(uv_handle_t* handle) = 0;
+        virtual void onConnect(uv_connect_t* req, int status) { }
+        virtual void onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) { }
+        virtual void onWrite(uv_write_t* req, int status) { }
+        virtual void onNewConnection(uv_stream_t* server, int status) { }
+        virtual void onClose(uv_handle_t* handle) { }
+        virtual void onTimer(uv_timer_t* timer) { }
     };
 
     // Used together with write requests, keeps reference to write buffer while needed.

@@ -64,7 +64,7 @@ myState(State::NotConnected)
 void NetClientBase::setUvStream(uv_tcp_t* stream_in)
 {
     myUvStream = stream_in;
-    myUvStream->data = (void*)((IUvSocket*)this);
+    myUvStream->data = (void*)dynamic_cast<IUvSocket*>(this);
 }
 
 int NetClientBase::sendMessage(BaseMessage const & msg_in)
@@ -81,7 +81,7 @@ int NetClientBase::sendMessage(BaseMessage const & msg_in)
 
     uv_write_t* req = new uv_write_t();
     // wrap buffers into a UvWriteRequest object
-    UvWriteRequest* wrreq = new UvWriteRequest((IUvSocket*)this, 1);
+    UvWriteRequest* wrreq = new UvWriteRequest(dynamic_cast<IUvSocket*>(this), 1);
     wrreq->add(binmsg);
     req->data = (void*)wrreq;
     ::uv_write(req, (uv_stream_t*)myUvStream, &(wrreq->bufs[0]), wrreq->nbuf, NetClientBase::on_write);
@@ -124,7 +124,7 @@ int NetClientBase::close()
         cerr << "Warning: Socket is already closing" << endl;
         return 0;
     }
-    ((uv_handle_t*)myUvStream)->data = (void*)((IUvSocket*)this);
+    ((uv_handle_t*)myUvStream)->data = (void*)dynamic_cast<IUvSocket*>(this);
     ::uv_close((uv_handle_t*)myUvStream, NetClientBase::on_close);
     //cout << "NetClientBase::close closed" << endl;
 }
@@ -154,7 +154,7 @@ void NetClientBase::on_write(uv_write_t* req, int status)
 void NetClientBase::onWrite(uv_write_t* req, int status) 
 {
     //cout << "NetClientBase::onWrite " << status << " "  << myState << endl;
-    assert(myState == State::Sending);
+    assert(myState == State::Sending || myState == State::Receiving);
     if (status != 0) 
     {
         cerr << "write error " << status << " " << ::uv_strerror(status) << endl;
@@ -274,13 +274,14 @@ void NetClientBase::onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* b
 int NetClientBase::doRead()
 {
     // communicate with client, process one message
-    assert(myState == State::Accepted || myState == State::Sent || myState == State::Sending);
+    //cout << "doRead " << myState << endl;
+    assert(myState == State::Accepted || myState == State::Sent || myState == State::Sending || myState == State::Receiving);
     myState = State::Receiving;
     //cout << "doRead " << endl; //(long)((IUvSocket*)this) << " " << (long)((NetClientBase*)this) << " " << (long)((NetClientIn*)this) << endl;
     //myReceiveBuffer.clear();
     //static const int buflen = 256;
     //char buffer[buflen];
-    ((uv_stream_t*)myUvStream)->data = (void*)((IUvSocket*)this);
+    ((uv_stream_t*)myUvStream)->data = (void*)dynamic_cast<IUvSocket*>(this);
     int res = ::uv_read_start((uv_stream_t*)myUvStream, NetClientBase::alloc_buffer, NetClientBase::on_read);
     if (res < 0)
     {
@@ -355,7 +356,7 @@ int NetClientOut::connect()
     ::uv_ip4_addr(myHost.c_str(), myPort, &dest);
 
     uv_connect_t* connreq = new uv_connect_t();
-    connreq->data = (void*)((IUvSocket*)this);
+    connreq->data = (void*)dynamic_cast<IUvSocket*>(this);
     //cout << "connecting..." << endl;
     int res = ::uv_tcp_connect(connreq, socket, (const struct sockaddr*)&dest, NetClientOut::on_connect);
     if (res)

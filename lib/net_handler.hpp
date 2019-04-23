@@ -21,11 +21,7 @@ namespace sample
         // return actual listen port
         int startWithListen(int port_in, int tryNextPorts_in);
         int stop();
-        void onConnect(uv_connect_t* req, int status) { }
-        void onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) { }
-        void onWrite(uv_write_t* req, int status) { }
         void onNewConnection(uv_stream_t* server, int status);
-        void onClose(uv_handle_t* handle) { }
         static std::string getRemoteAddress(const uv_tcp_t* socket_in);
 
     private:

@@ -43,7 +43,6 @@ namespace sample
         int close();
         void onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf);
         void onWrite(uv_write_t* req, int status);
-        void onNewConnection(uv_stream_t* server, int status) { }
         void onClose(uv_handle_t* handle);
         int doRead();
         virtual void process() { }
@@ -75,7 +74,6 @@ namespace sample
     {
     public:
         NetClientIn(ServerApp* app_in, uv_tcp_t* client_in, std::string const & nodeAddr_in);
-        void onConnect(uv_connect_t* req, int status) { }
     };
 
     /**

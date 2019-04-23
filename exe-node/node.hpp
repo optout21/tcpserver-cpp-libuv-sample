@@ -30,6 +30,7 @@ namespace sample
     protected:
         NetHandler* myNetHandler;
         std::string myName;
-        std::map<std::string, std::shared_ptr<NetClientBase>> myClients;
+        std::map<std::string, std::shared_ptr<NetClientBase>> myInClients;
+        std::map<std::string, std::shared_ptr<NetClientBase>> myOutClients;
     };
 }
