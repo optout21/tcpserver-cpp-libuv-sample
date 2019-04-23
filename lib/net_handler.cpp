@@ -9,9 +9,65 @@
 using namespace sample;
 using namespace std;
 
+
+uv_loop_t* NetHandler::myUvLoop = nullptr;
+
 NetHandler::NetHandler(BaseApp* app_in) :
 myApp(app_in)
 {
+}
+
+uv_loop_t* NetHandler::getUvLoop()
+{
+    if (myUvLoop == nullptr)
+    {
+        myUvLoop = new uv_loop_t();
+        ::uv_loop_init(myUvLoop);
+    }
+    assert(myUvLoop != nullptr);
+    return myUvLoop;
+}
+
+void NetHandler::deleteUvLoop()
+{
+    uv_loop_t* local = myUvLoop;
+    myUvLoop = nullptr;
+    if (local != nullptr)
+    {
+        delete local;
+    }
+}
+
+int NetHandler::runLoop()
+{
+    //cout << "NetHandler::runLoop " << endl;
+
+    uv_loop_t* loop = getUvLoop();
+    //cerr << "UV LOOP starting" << endl;
+    int res = ::uv_run(loop, UV_RUN_DEFAULT);
+    if (res)
+    {
+        cerr << "Nonzero from uv_run(): " << res << " " << ::uv_err_name(res) << endl;
+    }
+    //cerr << "UV LOOP stopped" << endl;
+    res = ::uv_loop_close(loop);
+    if (res)
+    {
+        if (res == -EBUSY)
+        {
+            cerr << "closing pending handles..." << endl;
+            // close handles
+            ::uv_walk(loop, NetHandler::on_walk, NULL);
+        }
+        else
+        {
+            cerr << "Nonzero from uv_loop_close(): " << res << " " << ::uv_err_name(res) << endl;
+        }
+    }
+    //cerr << "uv loop closed" << endl;    
+    deleteUvLoop();
+
+    return 0;
 }
 
 int NetHandler::start()
@@ -43,7 +99,7 @@ int NetHandler::startUvLoop()
 {
     myBgThreadStop = false;
 
-    uv_loop_t* loop = ::uv_default_loop();
+    uv_loop_t* loop = getUvLoop();
     // async handle to be able to awake loop when needed
     myUvAsync = new uv_async_t();
     int res = ::uv_async_init(loop, myUvAsync, NULL);
@@ -62,7 +118,7 @@ int NetHandler::stopUvLoop()
     int res = ::uv_async_send(myUvAsync);
     assert(res == 0);
     //cerr << "Stopping UV loop..." << endl;
-    ::uv_stop(::uv_default_loop());
+    ::uv_stop(getUvLoop());
     //cerr << "UV uv_stop() returned" << endl;
     // thread should end, wait for it
     myBgThread.join();
@@ -105,7 +161,7 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     }
 
     uv_tcp_t* client = new uv_tcp_t(); 
-    ::uv_tcp_init(::uv_default_loop(), client);
+    ::uv_tcp_init(getUvLoop(), client);
     int res = ::uv_accept(server, (uv_stream_t*)client);
     if (res < 0)
     {
@@ -116,10 +172,9 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     //cout << "accept res " << res << endl;
     string clientAddr = getRemoteAddress(client);
 
-    cout << "Accepted incoming connection from " << clientAddr << endl;
+    cout << "Accepted connection from " << clientAddr << endl;
     auto cli = new NetClientIn((ServerApp*)myApp, client, clientAddr);
     int error = cli->doRead();
-    cli->runLoop();
 }
 
 string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
@@ -161,7 +216,7 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
 int NetHandler::doBindAndListen(int port_in)
 {
     cerr << "doBindAndListen trying port " << port_in << endl;
-    uv_loop_t* loop = ::uv_default_loop();
+    uv_loop_t* loop = getUvLoop();
     uv_tcp_t* server = new uv_tcp_t();
     ::uv_tcp_init(loop, server);
 
@@ -208,40 +263,19 @@ int NetHandler::doListen(int port_in, int tryNextPorts_in)
 
 void NetHandler::on_walk(uv_handle_t* handle, void* arg)
 {
-    cout << "on_walk" << endl;
+    //cout << "on_walk" << endl;
     ::uv_close(handle, NetHandler::on_close);
 }
 
 int NetHandler::doBgThread()
 {
-    uv_loop_t* loop = ::uv_default_loop();
     //cerr << "UV LOOPLOOP starting" << endl;
     // Note: this second loop is not really necessary
     while (!myBgThreadStop)
     {
-        //cerr << "UV LOOP starting" << endl;
-        int res = ::uv_run(loop, UV_RUN_DEFAULT);
-        if (res)
-        {
-            cerr << "Nonzero from uv_run(): " << res << " " << ::uv_err_name(res) << endl;
-        }
-        //cerr << "UV LOOP stopped" << endl;
-        res = ::uv_loop_close(loop);
-        if (res)
-        {
-            if (res == -EBUSY)
-            {
-                cerr << "closing pending handles..." << endl;
-                // close handles
-                ::uv_walk(loop, NetHandler::on_walk, NULL);
-            }
-            else
-            {
-                cerr << "Nonzero from uv_loop_close(): " << res << " " << ::uv_err_name(res) << endl;
-            }
-        }
+        runLoop();
         if (myBgThreadStop) break;
-        cout << "Sleeping..." << endl;
+        //cout << "Sleeping..." << endl;
         std::this_thread::sleep_for(1s);
     }
     

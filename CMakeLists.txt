@@ -54,6 +54,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_subdirectory(lib)
 add_subdirectory(server)
 add_subdirectory(client)
+add_subdirectory(exe-node)
 
 #set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE)
 

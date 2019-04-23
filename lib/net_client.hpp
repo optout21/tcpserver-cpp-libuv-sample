@@ -46,12 +46,9 @@ namespace sample
         void onNewConnection(uv_stream_t* server, int status) { }
         void onClose(uv_handle_t* handle);
         int doRead();
-        int runLoop();
         virtual void process() { }
 
     protected:
-        uv_loop_t* getUvLoop();
-        void deleteUvLoop();
         void setUvStream(uv_tcp_t* stream_in);
         
     private:
@@ -66,9 +63,7 @@ namespace sample
         State myState;
 
     private:
-        static uv_loop_t* myUvLoop;
         std::string myNodeAddr;
-        //std::queue<std::vector<uint8_t>> mySendQueue;
         std::string myReceiveBuffer;
         uv_tcp_t* myUvStream;
     };

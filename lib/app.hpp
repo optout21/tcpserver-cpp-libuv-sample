@@ -16,7 +16,8 @@ namespace sample
     public:
         BaseApp() = default;
         virtual void start() = 0;
-        void listenStarted(int port);
+        /// Called when server is listening on a port already
+        virtual void listenStarted(int port);
         virtual void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in) = 0;
     };
 

@@ -76,9 +76,9 @@ BaseApp()
 
 void ClientApp::start()
 {
+    // create and connect clients
     int n = 3;
     auto clis = new NetClientBase*[n];
-    // create and connect clients
     for (int i = 0; i < n; ++i)
     {
         auto nc = new NetClientOut(this, "localhost", 5000 + i, 3 + i);
@@ -90,8 +90,8 @@ void ClientApp::start()
         }
     }
 
-    // run the loop, on any of them
-    clis[0]->runLoop();
+    // run the loop
+    NetHandler::runLoop();
     
     // if loop finishes, all are done
     // delete clients

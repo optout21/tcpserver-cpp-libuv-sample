@@ -14,6 +14,9 @@ namespace sample
     {
     public:
         NetHandler(BaseApp* app_in);
+        static uv_loop_t* getUvLoop();
+        static void deleteUvLoop();
+        static int runLoop();
         int start();
         // return actual listen port
         int startWithListen(int port_in, int tryNextPorts_in);
@@ -29,6 +32,7 @@ namespace sample
         int startUvLoop();
         int stopUvLoop();
         int doBindAndListen(int port_in);
+        // return actual listen port
         int doListen(int port_in, int tryNextPorts_in);
         int doBgThread();
         static void on_new_connection(uv_stream_t* server, int status);
@@ -36,6 +40,7 @@ namespace sample
         static void on_walk(uv_handle_t* handle, void* arg);
 
     private:
+        static uv_loop_t* myUvLoop;
         BaseApp* myApp;
         uv_async_t* myUvAsync;
         std::thread myBgThread;

@@ -2,6 +2,7 @@
 
 #include "app.hpp"
 #include "message.hpp"
+#include "net_handler.hpp"
 #include "uv_socket.hpp"
 
 #include <uv.h>
@@ -53,34 +54,11 @@ void SendMessageVisitor::pingResponse(PingResponseMessage const & msg_in)
 }
 
 
-uv_loop_t* NetClientBase::myUvLoop = nullptr;
-
 NetClientBase::NetClientBase(BaseApp* app_in, string const & nodeAddr_in) :
 myApp(app_in),
 myNodeAddr(nodeAddr_in),
 myState(State::NotConnected)
 {
-}
-
-uv_loop_t* NetClientBase::getUvLoop()
-{
-    if (myUvLoop == nullptr)
-    {
-        myUvLoop = new uv_loop_t();
-        ::uv_loop_init(myUvLoop);
-    }
-    assert(myUvLoop != nullptr);
-    return myUvLoop;
-}
-
-void NetClientBase::deleteUvLoop()
-{
-    uv_loop_t* local = myUvLoop;
-    myUvLoop = nullptr;
-    if (local != nullptr)
-    {
-        delete local;
-    }
 }
 
 void NetClientBase::setUvStream(uv_tcp_t* stream_in)
@@ -308,19 +286,6 @@ int NetClientBase::doRead()
     return 0;
 }
 
-int NetClientBase::runLoop()
-{
-    //cout << "NetClientBase::runLoop " << endl;
-
-    ::uv_run(getUvLoop(), UV_RUN_DEFAULT);
-
-    ::uv_loop_close(getUvLoop());
-    deleteUvLoop();
-    //cerr << "uv loop closed" << endl;
-
-    return 0;
-}
-
 
 NetClientIn::NetClientIn(ServerApp* iapp_in, uv_tcp_t* socket_in, string const & nodeAddr_in) :
 NetClientBase(iapp_in, nodeAddr_in)
@@ -378,7 +343,7 @@ int NetClientOut::connect()
     myState = State::Connecting;
     mySendCounter = 0;
     uv_tcp_t* socket = new uv_tcp_t();
-    ::uv_tcp_init(getUvLoop(), socket);
+    ::uv_tcp_init(NetHandler::getUvLoop(), socket);
     setUvStream(socket);
 
     struct sockaddr_in dest;
