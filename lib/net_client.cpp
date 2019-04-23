@@ -304,6 +304,15 @@ int NetClientBase::doRead()
     return 0;
 }
 
+bool NetClientBase::isConnected() const
+{
+    if (myUvStream == nullptr) return false;
+    if (myState == State::Undefined || myState == State::NotConnected || myState == State::Connecting || myState == State::Closing || myState == State::Closed) return false;
+    uv_os_fd_t fd;
+    if (::uv_fileno((uv_handle_t*)myUvStream, &fd)) return false;
+    if (fd <= 0) return false;
+    return true;
+}
 
 NetClientIn::NetClientIn(ServerApp* app_in, uv_tcp_t* socket_in, string const & nodeAddr_in) :
 NetClientBase(app_in, nodeAddr_in)

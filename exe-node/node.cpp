@@ -119,11 +119,15 @@ void NodeApp::tryOutConnections()
                     auto peerout = make_shared<PeerClientOut>(this, i->second.myOutHost, i->second.myOutPort);
                     i->second.setOutClient(peerout);
                 }
-                ++i->second.myOutConnTryCount;
-                int res = i->second.myOutClient->connect();
-                if (res)
+                //cout << "isConnected " << i->second.myOutClient->isConnected() << endl;
+                if (!i->second.myOutClient->isConnected())
                 {
-                    // error
+                    ++i->second.myOutConnTryCount;
+                    int res = i->second.myOutClient->connect();
+                    if (res)
+                    {
+                        // error
+                    }
                 }
             }
         }

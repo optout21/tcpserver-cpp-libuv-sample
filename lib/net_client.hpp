@@ -46,6 +46,7 @@ namespace sample
         void onClose(uv_handle_t* handle);
         int doRead();
         virtual void process() { }
+        bool isConnected() const;
 
     protected:
         void setUvStream(uv_tcp_t* stream_in);
