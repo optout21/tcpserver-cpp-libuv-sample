@@ -26,7 +26,7 @@ namespace sample
         virtual void connectionClosed(NetClientBase* client_in) = 0;
         /// Called when an incoming message is received
         virtual void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in) = 0;
-        virtual std::string getName() { return ""; }
+        virtual std::string getName() { return "_NONE_"; }
     };
 
     class ServerApp: public BaseApp
