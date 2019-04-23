@@ -177,10 +177,11 @@ void NodeApp::connectionClosed(NetClientBase* client_in)
         {
             if (i->second.myOutClient == nullptr && i->second.myInClient == nullptr && !i->second.myStickyOutFlag)
             {
-                cout << "Removing disconnected client " << i->first << endl;
+                cout << "Removing disconnected client " << myPeers.size() << " " << i->first << endl;
                 myPeers.erase(i->first);
+                //cout << "Removed disconnected client " << myPeers.size() << " " << i->first << endl;
                 changed = true;
-                break;
+                break; // for
             }
         }
     } 
@@ -188,7 +189,10 @@ void NodeApp::connectionClosed(NetClientBase* client_in)
 
 void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
-    cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
+    if (msg_in.getType() != MessageType::OtherPeer)
+    {
+        cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
+    }
     switch (msg_in.getType())
     {
         case MessageType::Handshake:
@@ -220,6 +224,14 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
             }
             break;
 
+        case MessageType::OtherPeer:
+            {
+                OtherPeerMessage const & peerMsg = dynamic_cast<OtherPeerMessage const &>(msg_in);
+                //cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
+                addOutPeer(peerMsg.getHost(), peerMsg.getPort(), false);
+            }
+            break;
+
         case MessageType::HandshakeResponse:
         case MessageType::PingResponse:
             // OK, noop
@@ -228,6 +240,19 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
         default:
             assert(false);
     }
+}
+
+vector<NodeApp::EndPoint> NodeApp::getOutPeers() const
+{
+    vector<EndPoint> peers;
+    for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
+    {
+        if (i->second.myOutFlag && i->second.myOutClient != nullptr)
+        {
+            peers.push_back(EndPoint { i->second.myOutHost, i->second.myOutPort });
+        }
+    }
+    return peers;
 }
 
 

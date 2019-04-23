@@ -1,6 +1,7 @@
 #include "peer_conn.hpp"
 #include "../lib/net_handler.hpp"
 #include "../lib/app.hpp"
+#include "node.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -32,6 +33,7 @@ void PeerClientOut::onTimer(uv_timer_t* handle)
     //cout << "onTimer " << endl;
     PingMessage msg("Ping_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
+    sendOtherPeers();
 }
 
 void PeerClientOut::process()
@@ -50,6 +52,7 @@ void PeerClientOut::process()
                 mySendCounter = 0;
                 HandshakeMessage msg(getNodeAddr(), myApp->getName());
                 sendMessage(msg);
+                sendOtherPeers();
             }
             break;
 
@@ -75,4 +78,23 @@ void PeerClientOut::process()
             break;
     }
     return;
+}
+
+void PeerClientOut::sendOtherPeers()
+{
+    // send current outgoing connection addresses
+    auto peers = dynamic_cast<NodeApp*>(myApp)->getOutPeers();
+    for(auto i = peers.begin(); i != peers.end(); ++i)
+    {
+        if (myState == State::Closing || myState == State::Closed)
+        {
+            return;
+        }
+        string ep = i->myHost + ":" + to_string(i->myPort);
+        if (ep != getNodeAddr())
+        {
+            //cout << "sendOtherPeers " << getNodeAddr() << " " << i->myHost << ":" << i->myPort << endl;
+            sendMessage(OtherPeerMessage(i->myHost, i->myPort));
+        }
+    }
 }

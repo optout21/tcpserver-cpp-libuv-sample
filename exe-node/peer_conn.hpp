@@ -19,6 +19,10 @@ namespace sample
         void onTimer(uv_timer_t* handle);
 
     private:
+        // Send all known active out peer connections to this peer
+        void sendOtherPeers();
+
+    private:
         int mySendCounter;
     };
 }

@@ -27,6 +27,7 @@ public:
     void handshakeResponse(HandshakeResponseMessage const & msg_in);
     void ping(PingMessage const & msg_in);
     void pingResponse(PingResponseMessage const & msg_in);
+    void otherPeer(OtherPeerMessage const & msg_in);
     string getMessage() const { return myMessage; }
 
 private:
@@ -53,12 +54,22 @@ void SendMessageVisitor::pingResponse(PingResponseMessage const & msg_in)
     myMessage = "PINGRESP " + msg_in.getText();
 }
 
+void SendMessageVisitor::otherPeer(OtherPeerMessage const & msg_in)
+{
+    myMessage = "OPEER " + msg_in.getHost() + " " + to_string(msg_in.getPort());
+}
+
 
 NetClientBase::NetClientBase(BaseApp* app_in, string const & nodeAddr_in) :
 myApp(app_in),
 myNodeAddr(nodeAddr_in),
 myState(State::NotConnected)
 {
+}
+
+NetClientBase::~NetClientBase()
+{
+    //cout << "~NetClientBase " << myNodeAddr << endl;
 }
 
 void NetClientBase::setUvStream(uv_tcp_t* stream_in)
@@ -70,6 +81,10 @@ void NetClientBase::setUvStream(uv_tcp_t* stream_in)
 int NetClientBase::sendMessage(BaseMessage const & msg_in)
 {
     //cout << "NetClientBase::sendMessage " << msg_in.toString() << endl;
+    if (myState == State::Closing || myState == State::Closed)
+    {
+        return 0;
+    }
     myState = State::Sending;
     SendMessageVisitor visitor;
     msg_in.visit(visitor);
@@ -89,7 +104,7 @@ int NetClientBase::sendMessage(BaseMessage const & msg_in)
     {
         if (res == -EBADF)
         {
-            // may be closed
+            // socket closed
         }
         else
         {
@@ -127,17 +142,20 @@ void NetClientBase::onClose(uv_handle_t* handle)
 
 int NetClientBase::close()
 {
-    //cout << "NetClientBase::close" << endl;
+    //cout << "NetClientBase::close " << getNodeAddr() << endl;
     myState = State::Closing;
-    if (uv_is_closing((uv_handle_t*)myUvStream))
+    uv_handle_t* handle = (uv_handle_t*)myUvStream;
+    if (handle == nullptr) return 0;
+    myUvStream = nullptr; // prevent double close
+    if (::uv_is_closing(handle))
     {
         // already closing
-        cerr << "Warning: Socket is already closing" << endl;
-        onClose((uv_handle_t*)myUvStream);
+        cerr << "Warning: Socket is already closing " << getNodeAddr() << endl;
+        onClose(handle);
         return 0;
     }
-    ((uv_handle_t*)myUvStream)->data = (void*)dynamic_cast<IUvSocket*>(this);
-    ::uv_close((uv_handle_t*)myUvStream, NetClientBase::on_close);
+    handle->data = (void*)dynamic_cast<IUvSocket*>(this);
+    ::uv_close(handle, NetClientBase::on_close);
     //cout << "NetClientBase::close closed" << endl;
 }
 
@@ -166,7 +184,7 @@ void NetClientBase::on_write(uv_write_t* req, int status)
 void NetClientBase::onWrite(uv_write_t* req, int status) 
 {
     //cout << "NetClientBase::onWrite " << status << " "  << myState << endl;
-    assert(myState == State::Sending || myState == State::Receiving);
+    assert(myState == State::Sending || myState == State::Receiving || myState == State::Received);
     if (status != 0) 
     {
         cerr << "write error " << status << " " << ::uv_strerror(status) << endl;
@@ -215,6 +233,11 @@ void NetClientBase::doProcessReceivedBuffer()
         {
             myState = State::Received;
             myApp->messageReceived(*this, PingResponseMessage(tokens[1]));
+        }
+        else if (tokens.size() >= 3 && tokens[0] == "OPEER")
+        {
+            myState = State::Received;
+            myApp->messageReceived(*this, OtherPeerMessage(tokens[1], stoi(tokens[2])));
         }
         else
         {
@@ -360,8 +383,7 @@ void NetClientOut::onConnect(uv_connect_t* req, int status)
 
 int NetClientOut::connect()
 {
-    cout << "NetClientOut::connect " << myHost << ":" << myPort << endl;
-
+    //cout << "NetClientOut::connect " << myHost << ":" << myPort << endl;
     if (myState >= State::Connected && myState < Closed)
     {
         cerr << "Fatal error: Connect on connected connection " << myState << endl;

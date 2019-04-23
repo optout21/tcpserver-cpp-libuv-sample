@@ -37,6 +37,7 @@ namespace sample
 
     public:
         NetClientBase(BaseApp* app_in, std::string const & nodeAddr_in);
+        virtual ~NetClientBase();
 	    std::string getNodeAddr() const { return myNodeAddr; }
         // Send a message to this peer
         int sendMessage(BaseMessage const & msg_in);

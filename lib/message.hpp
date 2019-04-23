@@ -10,7 +10,8 @@ namespace sample
         Handshake = 1,
         HandshakeResponse = 2,
         Ping = 3,
-        PingResponse = 4
+        PingResponse = 4,
+        OtherPeer = 5
     };
 
     class MessageVisitorBase;  // forward decl
@@ -62,7 +63,7 @@ namespace sample
     class PingMessage: public BaseMessage
     {
     public:
-        PingMessage(std::string myText_in);
+        PingMessage(std::string text_in);
         std::string getText() const { return myText; }
         void visit(MessageVisitorBase & visitor_in) const;
         std::string toString() const;
@@ -74,13 +75,28 @@ namespace sample
     class PingResponseMessage: public BaseMessage
     {
     public:
-        PingResponseMessage(std::string myText_in);
+        PingResponseMessage(std::string text_in);
         std::string getText() const { return myText; }
         void visit(MessageVisitorBase & visitor_in) const;
         std::string toString() const;
 
     private:
         std::string myText;
+    };
+
+    /// Contains info about a 3rd peer
+    class OtherPeerMessage: public BaseMessage
+    {
+    public:
+        OtherPeerMessage(std::string host_in, int port_in);
+        std::string getHost() const { return myHost; }
+        int getPort() const { return myPort; }
+        void visit(MessageVisitorBase & visitor_in) const;
+        std::string toString() const;
+
+    private:
+        std::string myHost;
+        int myPort;
     };
 
     class MessageVisitorBase
@@ -90,6 +106,7 @@ namespace sample
 	    virtual void handshakeResponse(HandshakeResponseMessage const & msg_in) = 0;
         virtual void ping(PingMessage const & msg_in) = 0;
         virtual void pingResponse(PingResponseMessage const & msg_in) = 0;
+        virtual void otherPeer(OtherPeerMessage const & msg_in) = 0;
 	    virtual ~MessageVisitorBase() = default;
     };
 }

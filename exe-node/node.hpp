@@ -4,6 +4,7 @@
 
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace sample
 {
@@ -54,6 +55,14 @@ namespace sample
             bool myOutFlag;
             bool myStickyOutFlag;
         };
+
+        class EndPoint
+        {
+        public:
+            std::string myHost;
+            int myPort;
+        };
+        std::vector<EndPoint> getOutPeers() const;
 
     protected:
         NetHandler* myNetHandler;

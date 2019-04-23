@@ -26,3 +26,10 @@ From another console:
 * In the server UV loop is in a background thread, can be stopped from other thread (using UV async handle)
 * The client uses one UV loop for the client sockets, in the main thread
 * Messages are encoded simple text-based, variable-length, using terminators and separators.
+* Transitive peer discovery is done (in node)
+
+## Executables 
+
+* tcp-libuv-server: Listens on port 5000 (or tries a few next ones if taken), and accepts connections.
+* tcp-libuv-client: Tries to connect to localhost:5000 and a few next ports, and sends Handshake and a few Ping messages.
+* tcp-libuv-node: Acts as a P2P peer: Listens on port 5000 (or tries a few next ones if taken), tried to connect to localhost:5000 and a few next ports.  Performs handshakes, periodic Pings.  Also sends periodically the connected peers to other peers.
