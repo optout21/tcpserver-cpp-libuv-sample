@@ -48,14 +48,14 @@ void ServerApp::inConnectionReceived(shared_ptr<NetClientBase>& client_in)
     myClients[cliaddr] = client_in;
 }
 
-void ServerApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
+void ServerApp::connectionClosed(NetClientBase* client_in)
 {
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: Connection done: " << cliaddr << endl;
     for(auto i = myClients.begin(); i != myClients.end(); ++i)
     {
-        if (i->second.get() == client_in.get())
+        if (i->second.get() == client_in)
         {
             myClients.erase(i->first);
             break;

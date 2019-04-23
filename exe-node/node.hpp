@@ -26,7 +26,7 @@ namespace sample
         /// Called when a new incoming connection is received
         void inConnectionReceived(std::shared_ptr<NetClientBase>& client_in);
         /// Called when an incoming connection has finished
-        void connectionClosed(std::shared_ptr<NetClientBase>& client_in);
+        void connectionClosed(NetClientBase* client_in);
         /// Called when an incoming message is received
         void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in);
 

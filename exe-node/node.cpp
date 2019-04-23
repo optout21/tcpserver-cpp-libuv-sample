@@ -129,18 +129,18 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     myPeers[cliaddr].setInClient(cliIn);
 }
 
-void NodeApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
+void NodeApp::connectionClosed(NetClientBase* client_in)
 {
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: Connection done: " << cliaddr << endl;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.myInClient.get() == client_in.get())
+        if (i->second.myInClient.get() == client_in)
         {
             i->second.resetInClient();
         }
-        if (i->second.myOutClient.get() == client_in.get())
+        if (i->second.myOutClient.get() == client_in)
         {
             i->second.resetOutClient();
         }

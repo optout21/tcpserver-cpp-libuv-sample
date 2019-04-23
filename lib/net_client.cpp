@@ -84,7 +84,19 @@ int NetClientBase::sendMessage(BaseMessage const & msg_in)
     UvWriteRequest* wrreq = new UvWriteRequest(dynamic_cast<IUvSocket*>(this), 1);
     wrreq->add(binmsg);
     req->data = (void*)wrreq;
-    ::uv_write(req, (uv_stream_t*)myUvStream, &(wrreq->bufs[0]), wrreq->nbuf, NetClientBase::on_write);
+    int res = ::uv_write(req, (uv_stream_t*)myUvStream, &(wrreq->bufs[0]), wrreq->nbuf, NetClientBase::on_write);
+    if (res)
+    {
+        if (res == -EBADF)
+        {
+            // may be closed
+        }
+        else
+        {
+            cerr << "Error from uv_write " << res << " " << ::uv_err_name(res) << endl;
+        }
+        close();
+    }
 }
 
 void NetClientBase::on_close(uv_handle_t* handle)
@@ -104,8 +116,7 @@ void NetClientBase::onClose(uv_handle_t* handle)
     //cout << "onClose" << endl;
     if (myApp != nullptr)
     {
-        auto thisptr = shared_ptr<NetClientBase>(this);
-        myApp->connectionClosed(thisptr);
+        myApp->connectionClosed(this);
     }
     if (handle != NULL)
     {
@@ -122,6 +133,7 @@ int NetClientBase::close()
     {
         // already closing
         cerr << "Warning: Socket is already closing" << endl;
+        onClose((uv_handle_t*)myUvStream);
         return 0;
     }
     ((uv_handle_t*)myUvStream)->data = (void*)dynamic_cast<IUvSocket*>(this);
