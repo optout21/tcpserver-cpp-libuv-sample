@@ -34,12 +34,14 @@ namespace sample
     class HandshakeMessage: public BaseMessage
     {
     public:
-        HandshakeMessage(std::string myAddr_in);
+        HandshakeMessage(std::string yourAddr_in, std::string myAddr_in);
+        std::string getYourAddr() const { return myYourAddr; }
         std::string getMyAddr() const { return myMyAddr; }
         void visit(MessageVisitorBase & visitor_in) const;
         std::string toString() const;
 
     private:
+        std::string myYourAddr;
         std::string myMyAddr;
     };
 

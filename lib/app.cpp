@@ -32,7 +32,7 @@ void ServerApp::start()
     {
         return;
     }
-    myName = "localhost:" + to_string(actualPort);
+    myName = ":" + to_string(actualPort);
 }
 
 void ServerApp::stop()

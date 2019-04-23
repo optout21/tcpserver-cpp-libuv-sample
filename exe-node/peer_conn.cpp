@@ -1,5 +1,6 @@
 #include "peer_conn.hpp"
 #include "../lib/net_handler.hpp"
+#include "../lib/app.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -8,7 +9,6 @@ using namespace sample;
 using namespace std;
 
 PeerClientOut::PeerClientOut(BaseApp* app_in, string const & host_in, int port_in) :
-
 NetClientOut(app_in, host_in, port_in, 1),
 mySendCounter(0)
 {
@@ -48,7 +48,7 @@ void PeerClientOut::process()
                 timer->data = (void*)dynamic_cast<IUvSocket*>(this);
                 uv_timer_start(timer, PeerClientOut::on_timer, pingPeriod, pingPeriod);
                 mySendCounter = 0;
-                HandshakeMessage msg(getNodeAddr());
+                HandshakeMessage msg(getNodeAddr(), myApp->getName());
                 sendMessage(msg);
             }
             break;

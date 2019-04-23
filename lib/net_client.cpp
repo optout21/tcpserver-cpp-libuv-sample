@@ -35,7 +35,7 @@ private:
 
 void SendMessageVisitor::handshake(HandshakeMessage const & msg_in)
 {
-    myMessage = "HANDSH " + msg_in.getMyAddr();
+    myMessage = "HANDSH " + msg_in.getYourAddr() + " " + msg_in.getMyAddr();
 }
 
 void SendMessageVisitor::handshakeResponse(HandshakeResponseMessage const & msg_in)
@@ -196,10 +196,10 @@ void NetClientBase::doProcessReceivedBuffer()
             while (ss >> buf) tokens.push_back(buf);
         }
         assert(myApp != nullptr);
-        if (tokens.size() >= 2 && tokens[0] == "HANDSH")
+        if (tokens.size() >= 3 && tokens[0] == "HANDSH")
         {
             myState = State::Received;
-            myApp->messageReceived(*this, HandshakeMessage(tokens[1]));
+            myApp->messageReceived(*this, HandshakeMessage(tokens[1], tokens[2]));
         }
         else if (tokens.size() >= 3 && tokens[0] == "HANDSHRESP")
         {
@@ -351,7 +351,7 @@ void NetClientOut::onConnect(uv_connect_t* req, int status)
 
 int NetClientOut::connect()
 {
-    //cout << "NetClientOut::connect " << myHost << ":" << myPort << endl;
+    cout << "NetClientOut::connect " << myHost << ":" << myPort << endl;
 
     if (myState >= State::Connected && myState < Closed)
     {
@@ -365,12 +365,17 @@ int NetClientOut::connect()
     setUvStream(socket);
 
     struct sockaddr_in dest;
-    ::uv_ip4_addr(myHost.c_str(), myPort, &dest);
+    int res = ::uv_ip4_addr(myHost.c_str(), myPort, &dest);
+    if (res)
+    {
+        cerr << "Error from uv_ip4_addr() " << res << " " << ::uv_err_name(res) << endl;
+        return res;
+    }
 
     uv_connect_t* connreq = new uv_connect_t();
     connreq->data = (void*)dynamic_cast<IUvSocket*>(this);
     //cout << "connecting..." << endl;
-    int res = ::uv_tcp_connect(connreq, socket, (const struct sockaddr*)&dest, NetClientOut::on_connect);
+    res = ::uv_tcp_connect(connreq, socket, (const struct sockaddr*)&dest, NetClientOut::on_connect);
     if (res)
     {
         cerr << "Error from uv_tcp_connect() " << res << " " << ::uv_err_name(res) << endl;
@@ -387,7 +392,7 @@ void NetClientOut::process()
         case State::Connected:
             {
                 mySendCounter = 0;
-                HandshakeMessage msg(getNodeAddr());
+                HandshakeMessage msg(getNodeAddr(), myApp->getName());
                 sendMessage(msg);
             }
             break;

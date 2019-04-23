@@ -10,8 +10,9 @@ myType(type_in)
 }
 
 
-HandshakeMessage::HandshakeMessage(string myAddr_in) :
+HandshakeMessage::HandshakeMessage(std::string yourAddr_in, string myAddr_in) :
 BaseMessage(MessageType::Handshake),
+myYourAddr(yourAddr_in),
 myMyAddr(myAddr_in)
 {
 }
@@ -23,7 +24,7 @@ void HandshakeMessage::visit(MessageVisitorBase & visitor_in) const
 
 std::string HandshakeMessage::toString() const
 {
-    return "HandSh " + myMyAddr;
+    return "HandSh " + myYourAddr + " " + myMyAddr;
 }
 
 

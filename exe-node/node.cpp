@@ -13,17 +13,24 @@ using namespace std;
 NodeApp::PeerInfo::PeerInfo(string endpoint_in) :
 myEndpoint(endpoint_in),
 myOutClient(nullptr),
-myInClient(nullptr)
+myInClient(nullptr),
+myOutHost(""),
+myOutPort(0),
+myOutFlag(false),
+myStickyOutFlag(false),
+myOutConnTryCount(0)
 {
 }
 
-NodeApp::PeerInfo::PeerInfo(std::string outHost_in, int outPort_in) :
+NodeApp::PeerInfo::PeerInfo(std::string outHost_in, int outPort_in, bool sticky_in) :
 myEndpoint(outHost_in + ":" + to_string(outPort_in)),
 myOutClient(nullptr),
 myInClient(nullptr),
 myOutHost(outHost_in),
 myOutPort(outPort_in),
-myStickyOutFlag(true)
+myOutFlag(true),
+myStickyOutFlag(sticky_in),
+myOutConnTryCount(0)
 {
 }
 
@@ -58,7 +65,7 @@ void NodeApp::start()
 {
     int actualPort = myNetHandler->startWithListen(5000, 10);
     if (actualPort <= 0) return;
-    myName = "localhost:" + to_string(actualPort);
+    myName = ":" + to_string(actualPort);
 }
 
 void NodeApp::listenStarted(int port)
@@ -75,33 +82,45 @@ void NodeApp::listenStarted(int port)
         // skip connection to self
         if (port != port1)
         {
-            addStickyPeer("localhost", port1);
+            addOutPeer("127.0.0.1", port1, true);
         }
     }
     tryOutConnections();
 }
 
 
-void NodeApp::addStickyPeer(std::string host_in, int port_in)
+void NodeApp::addOutPeer(std::string host_in, int port_in, bool sticky_in)
 {
-    PeerInfo peer = PeerInfo(host_in, port_in);
+    PeerInfo peer = PeerInfo(host_in, port_in, sticky_in);
+    if (myPeers.find(peer.myEndpoint) != myPeers.end())
+    {
+        // already present
+        return;
+    }
     myPeers[peer.myEndpoint] = peer;
+    cout << "App: Added sticky peer " << peer.myEndpoint << " " << myPeers.size() << endl;
 }
 
 void NodeApp::tryOutConnections()
 {
+    //cout << "NodeApp::tryOutConnections" << endl;
     // try to connect to clients
     for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.myOutClient == nullptr)
+        //cout << i->second.myOutFlag << " " << i->second.myStickyOutFlag << " " << i->second.myOutConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myOutHost << ":" << i->second.myOutPort << endl;
+        if (i->second.myOutFlag)
         {
             if (i->second.myOutConnTryCount == 0 || i->second.myStickyOutFlag)
             {
                 // try outgoing connection
-                auto peerout = make_shared<PeerClientOut>(this, i->second.myOutHost, i->second.myOutPort);
-                i->second.setOutClient(peerout);
+                //cout << "Trying out conn to " << i->second.myOutHost << ":" << i->second.myOutPort << endl;
+                if (i->second.myOutClient == nullptr)
+                {
+                    auto peerout = make_shared<PeerClientOut>(this, i->second.myOutHost, i->second.myOutPort);
+                    i->second.setOutClient(peerout);
+                }
                 ++i->second.myOutConnTryCount;
-                int res = peerout->connect();
+                int res = i->second.myOutClient->connect();
                 if (res)
                 {
                     // error
@@ -174,6 +193,17 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                 //cout << "Handshake message received, '" << hsMsg.getMyAddr() << "'" << endl;
                 HandshakeResponseMessage resp(myName, client_in.getNodeAddr());
                 client_in.sendMessage(resp);
+                // try to connect ougoing too, host taken from actual remote peer, port reported by peer
+                string reportedPeerName = hsMsg.getMyAddr();
+                if (reportedPeerName.substr(0, 1) == ":")
+                {
+                    string port = reportedPeerName.substr(1);
+                    string host = client_in.getNodeAddr();
+                    int idx = host.find(':');
+                    if (idx >= 0) host = host.substr(0, idx);
+                    addOutPeer(host, stoi(port), false);
+                }
+                tryOutConnections();
             }
             break;
 
