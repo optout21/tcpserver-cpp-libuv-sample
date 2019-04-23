@@ -178,6 +178,7 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     //}
     shared_ptr<NetClientIn> cliin = make_shared<NetClientIn>((ServerApp*)myApp, client, clientAddr);
     shared_ptr<NetClientBase> cli = dynamic_pointer_cast<NetClientBase>(cliin);
+    //cli->setSelfPtr(cli);
     assert(myApp != nullptr);
     myApp->inConnectionReceived(cli);
     int error = cli->doRead();
