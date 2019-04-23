@@ -171,8 +171,11 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     }
     //cout << "accept res " << res << endl;
     string clientAddr = getRemoteAddress(client);
-
-    //cout << "Accepted connection from " << clientAddr << endl;
+    //{
+    //    uv_os_fd_t fd;
+    //    ::uv_fileno((uv_handle_t*)client, &fd);
+    //    cout << "Accepted connection " << fd << " from " << clientAddr << endl;
+    //}
     shared_ptr<NetClientIn> cliin = make_shared<NetClientIn>((ServerApp*)myApp, client, clientAddr);
     shared_ptr<NetClientBase> cli = dynamic_pointer_cast<NetClientBase>(cliin);
     assert(myApp != nullptr);
@@ -187,7 +190,7 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
     //uv_fileno((uv_handle_t*)socket_in, &fd);
     struct sockaddr sockaddr;
     int addrlen = sizeof(sockaddr);
-    int res = ::uv_tcp_getsockname(socket_in, &sockaddr, &addrlen);
+    int res = ::uv_tcp_getpeername(socket_in, &sockaddr, &addrlen);
     if (res != 0)
     {
         return addr;

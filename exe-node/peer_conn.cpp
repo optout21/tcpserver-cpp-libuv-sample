@@ -30,7 +30,7 @@ void PeerClientOut::on_timer(uv_timer_t* handle)
 void PeerClientOut::onTimer(uv_timer_t* handle)
 {
     //cout << "onTimer " << endl;
-    PingMessage msg("Ping_" + getNodeAddr() + "_" + to_string(mySendCounter));
+    PingMessage msg("Ping_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
 }
 

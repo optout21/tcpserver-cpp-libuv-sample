@@ -10,6 +10,44 @@ using namespace sample;
 using namespace std;
 
 
+NodeApp::PeerInfo::PeerInfo(string endpoint_in) :
+myEndpoint(endpoint_in),
+myOutClient(nullptr),
+myInClient(nullptr)
+{
+}
+
+NodeApp::PeerInfo::PeerInfo(std::string outHost_in, int outPort_in) :
+myEndpoint(outHost_in + ":" + to_string(outPort_in)),
+myOutClient(nullptr),
+myInClient(nullptr),
+myOutHost(outHost_in),
+myOutPort(outPort_in),
+myStickyOutFlag(true)
+{
+}
+
+void NodeApp::PeerInfo::setOutClient(std::shared_ptr<PeerClientOut>& outClient_in)
+{
+    myOutClient = outClient_in;
+}
+
+void NodeApp::PeerInfo::setInClient(std::shared_ptr<NetClientIn>& inClient_in)
+{
+    myInClient = inClient_in;
+}
+
+void NodeApp::PeerInfo::resetOutClient()
+{
+    myOutClient = nullptr;
+}
+
+void NodeApp::PeerInfo::resetInClient()
+{
+    myOutClient = nullptr;
+}
+
+
 NodeApp::NodeApp() :
 BaseApp()
 {
@@ -27,9 +65,8 @@ void NodeApp::listenStarted(int port)
 {
     cout << "App: Listening on port " << port << endl;
 
-    // create and connect clients
-    int n = 3;
-    //auto clis = new NetClientBase*[n];
+    // add sticky bootstrap peers
+    int n = 2;
     // try to connect to clients
     for (int i = 0; i < n; ++i)
     {
@@ -38,14 +75,37 @@ void NodeApp::listenStarted(int port)
         // skip connection to self
         if (port != port1)
         {
-            string name = "localhost:" + to_string(port1);
-            auto peerout = make_shared<PeerClientOut>(this, "localhost", port1);
-            auto cli = dynamic_pointer_cast<NetClientBase>(peerout);
-            myOutClients[name] = cli;
-            int res = peerout->connect();
-            if (res)
+            addStickyPeer("localhost", port1);
+        }
+    }
+    tryOutConnections();
+}
+
+
+void NodeApp::addStickyPeer(std::string host_in, int port_in)
+{
+    PeerInfo peer = PeerInfo(host_in, port_in);
+    myPeers[peer.myEndpoint] = peer;
+}
+
+void NodeApp::tryOutConnections()
+{
+    // try to connect to clients
+    for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
+    {
+        if (i->second.myOutClient == nullptr)
+        {
+            if (i->second.myOutConnTryCount == 0 || i->second.myStickyOutFlag)
             {
-                // error
+                // try outgoing connection
+                auto peerout = make_shared<PeerClientOut>(this, i->second.myOutHost, i->second.myOutPort);
+                i->second.setOutClient(peerout);
+                ++i->second.myOutConnTryCount;
+                int res = peerout->connect();
+                if (res)
+                {
+                    // error
+                }
             }
         }
     }
@@ -61,7 +121,12 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
-    myInClients[cliaddr] = client_in;
+    if (myPeers.find(cliaddr) == myPeers.end())
+    {
+        myPeers[cliaddr] = PeerInfo(cliaddr);
+    }
+    auto cliIn = dynamic_pointer_cast<NetClientIn>(client_in);
+    myPeers[cliaddr].setInClient(cliIn);
 }
 
 void NodeApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
@@ -69,22 +134,33 @@ void NodeApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
     assert(client_in != nullptr);
     string cliaddr = client_in->getNodeAddr();
     cout << "App: Connection done: " << cliaddr << endl;
-    for(auto i = myInClients.begin(); i != myInClients.end(); ++i)
+    for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.get() == client_in.get())
+        if (i->second.myInClient.get() == client_in.get())
         {
-            myInClients.erase(i->first);
-            break;
+            i->second.resetInClient();
+        }
+        if (i->second.myOutClient.get() == client_in.get())
+        {
+            i->second.resetOutClient();
         }
     }
-    for(auto i = myOutClients.begin(); i != myOutClients.end(); ++i)
+    // remove disconnected clients
+    bool changed = true;
+    while (changed)
     {
-        if (i->second.get() == client_in.get())
+        changed = false;
+        for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
         {
-            myOutClients.erase(i->first);
-            break;
+            if (i->second.myOutClient == nullptr && i->second.myInClient == nullptr && !i->second.myStickyOutFlag)
+            {
+                cout << "Removing disconnected client " << i->first << endl;
+                myPeers.erase(i->first);
+                changed = true;
+                break;
+            }
         }
-    }
+    } 
 }
 
 void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
