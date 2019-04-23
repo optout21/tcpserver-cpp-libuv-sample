@@ -292,16 +292,16 @@ int NetClientBase::doRead()
 }
 
 
-NetClientIn::NetClientIn(ServerApp* iapp_in, uv_tcp_t* socket_in, string const & nodeAddr_in) :
-NetClientBase(iapp_in, nodeAddr_in)
+NetClientIn::NetClientIn(ServerApp* app_in, uv_tcp_t* socket_in, string const & nodeAddr_in) :
+NetClientBase(app_in, nodeAddr_in)
 {
     setUvStream(socket_in);
     myState = State::Accepted;
 }
 
 
-NetClientOut::NetClientOut(BaseApp* iapp_in, string const & host_in, int port_in, int pingToSend_in) :
-NetClientBase(iapp_in, host_in + ":" + to_string(port_in)),
+NetClientOut::NetClientOut(BaseApp* app_in, string const & host_in, int port_in, int pingToSend_in) :
+NetClientBase(app_in, host_in + ":" + to_string(port_in)),
 myHost(host_in),
 myPort(port_in),
 myPingToSend(pingToSend_in),

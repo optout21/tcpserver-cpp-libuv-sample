@@ -87,7 +87,7 @@ namespace sample
         NetClientOut(BaseApp* app_in, std::string const & host_in, int port_in, int pingToSend_in);
         int connect();
         // Perform state-dependent next action in the client state diagram
-        void process();
+        virtual void process();
         void onConnect(uv_connect_t* req, int status);
         
     private:

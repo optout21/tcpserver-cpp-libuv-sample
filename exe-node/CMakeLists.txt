@@ -2,6 +2,8 @@
 add_executable(tcp-libuv-node
 	node.cpp
     node.hpp
+    peer_conn.cpp
+    peer_conn.hpp
 )
 
 # link with our library, and default platform libraries

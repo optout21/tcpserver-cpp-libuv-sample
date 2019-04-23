@@ -1,4 +1,5 @@
 #include "node.hpp"
+#include "peer_conn.hpp"
 #include "../lib/net_handler.hpp"
 #include "../lib/net_client.hpp"
 
@@ -37,7 +38,7 @@ void NodeApp::listenStarted(int port)
         // skip connection to self
         if (port != port1)
         {
-            auto nc = new NetClientOut(this, "localhost", port1, 3 + i);
+            auto nc = new PeerClientOut(this, "localhost", port1);
             clis[i] = nc;
             int res = nc->connect();
             if (res)
