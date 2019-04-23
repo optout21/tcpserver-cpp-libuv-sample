@@ -172,8 +172,11 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     //cout << "accept res " << res << endl;
     string clientAddr = getRemoteAddress(client);
 
-    cout << "Accepted connection from " << clientAddr << endl;
-    auto cli = new NetClientIn((ServerApp*)myApp, client, clientAddr);
+    //cout << "Accepted connection from " << clientAddr << endl;
+    shared_ptr<NetClientIn> cliin = make_shared<NetClientIn>((ServerApp*)myApp, client, clientAddr);
+    shared_ptr<NetClientBase> cli = dynamic_pointer_cast<NetClientBase>(cliin);
+    assert(myApp != nullptr);
+    myApp->inConnectionReceived(cli);
     int error = cli->doRead();
 }
 

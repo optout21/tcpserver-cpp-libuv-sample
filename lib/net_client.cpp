@@ -102,6 +102,11 @@ void NetClientBase::on_close(uv_handle_t* handle)
 void NetClientBase::onClose(uv_handle_t* handle)
 {
     //cout << "onClose" << endl;
+    if (myApp != nullptr)
+    {
+        auto thisptr = shared_ptr<NetClientBase>(this);
+        myApp->connectionClosed(thisptr);
+    }
     if (handle != NULL)
     {
         delete handle;

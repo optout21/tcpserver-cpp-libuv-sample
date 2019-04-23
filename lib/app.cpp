@@ -40,6 +40,29 @@ void ServerApp::stop()
     myNetHandler->stop();
 }
 
+void ServerApp::inConnectionReceived(shared_ptr<NetClientBase>& client_in)
+{
+    assert(client_in != nullptr);
+    string cliaddr = client_in->getNodeAddr();
+    cout << "App: New incoming connection: " << cliaddr << endl;
+    myClients[cliaddr] = client_in;
+}
+
+void ServerApp::connectionClosed(std::shared_ptr<NetClientBase>& client_in)
+{
+    assert(client_in != nullptr);
+    string cliaddr = client_in->getNodeAddr();
+    cout << "App: Connection done: " << cliaddr << endl;
+    for(auto i = myClients.begin(); i != myClients.end(); ++i)
+    {
+        if (i->second.get() == client_in.get())
+        {
+            myClients.erase(i->first);
+            break;
+        }
+    }
+}
+
 void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
     cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
@@ -76,7 +99,7 @@ BaseApp()
 
 void ClientApp::start()
 {
-    // create and connect clients
+    // create and connect clients, before starting the loop
     int n = 3;
     auto clis = new NetClientBase*[n];
     for (int i = 0; i < n; ++i)
