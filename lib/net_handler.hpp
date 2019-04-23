@@ -23,7 +23,7 @@ namespace sample
         void onWrite(uv_write_t* req, int status) { }
         void onNewConnection(uv_stream_t* server, int status);
         void onClose(uv_handle_t* handle) { }
-        static std::string getRemoteAddress(uv_tcp_t* socket_in);
+        static std::string getRemoteAddress(const uv_tcp_t* socket_in);
 
     private:
         int startUvLoop();

@@ -2,7 +2,6 @@
 
 #include <uv.h>
 
-//#include <string.h>
 #include <vector>
 
 namespace sample

@@ -6,12 +6,6 @@
 #include <cassert>
 #include <iostream>
 
-#include <arpa/inet.h> // inet_ntop
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
 using namespace sample;
 using namespace std;
 
@@ -128,14 +122,14 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     cli->runLoop();
 }
 
-string NetHandler::getRemoteAddress(uv_tcp_t* socket_in)
+string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
 {
     string addr("?");
-    uv_os_fd_t fd;
-    uv_fileno((uv_handle_t*)socket_in, &fd);
+    //uv_os_fd_t fd;
+    //uv_fileno((uv_handle_t*)socket_in, &fd);
     struct sockaddr sockaddr;
-    socklen_t addrlen = sizeof(sockaddr);
-    int res = ::getsockname(fd, (struct sockaddr *)&sockaddr, &addrlen);
+    int addrlen = sizeof(sockaddr);
+    int res = ::uv_tcp_getsockname(socket_in, &sockaddr, &addrlen);
     if (res != 0)
     {
         return addr;
@@ -144,17 +138,17 @@ string NetHandler::getRemoteAddress(uv_tcp_t* socket_in)
     {
         char remoteIp[256];
         //sockaddr.sin_addr.s_addr = ::ntohl(sockaddr.sin_addr.s_addr);
-        if (::inet_ntop(AF_INET, &(((struct sockaddr_in*)&sockaddr)->sin_addr), remoteIp, 256) == NULL)
+        if (::uv_inet_ntop(AF_INET, &(((struct sockaddr_in*)&sockaddr)->sin_addr), remoteIp, 256))
         {
             return addr;
         }
         addr = string(remoteIp) + ":" + to_string(((struct sockaddr_in*)&sockaddr)->sin_port);
         return addr;
     }
-    else if (sockaddr.sa_family == AF_INET6)
+    if (sockaddr.sa_family == AF_INET6)
     {
         char remoteIp[256];
-        if (::inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&sockaddr)->sin6_addr), remoteIp, 256) == NULL)
+        if (::uv_inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&sockaddr)->sin6_addr), remoteIp, 256))
         {
             return addr;
         }
