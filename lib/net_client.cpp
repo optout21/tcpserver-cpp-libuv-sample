@@ -205,7 +205,7 @@ void NetClientBase::doProcessReceivedBuffer()
     {
         string msg1 = myReceiveBuffer.substr(0, terminatorIdx); // without the terminator
         myReceiveBuffer = myReceiveBuffer.substr(terminatorIdx + 1);
-        //cout << "Incoming message: from " << myNodeAddr << " '" << msg1 << "'" << endl;
+        //cout << "Incoming message: from " << myNodeAddr << " '" << msg1 << "' " << myReceiveBuffer.length() << endl;
         // split into tokens
         std::vector<std::string> tokens; // Create vector to hold our words
         {
@@ -297,7 +297,7 @@ void NetClientBase::onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* b
     }
     if (buf != nullptr && buf->base != nullptr)
     {
-        myReceiveBuffer.append(string(buf->base));
+        myReceiveBuffer.append(string(buf->base, nread));
         //cerr << "ReceiveBuffer increased to " << myReceiveBuffer.length() << endl;
         doProcessReceivedBuffer();
     }
