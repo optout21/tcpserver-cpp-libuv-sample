@@ -15,51 +15,6 @@ using namespace sample;
 using namespace std;
 
 
-/**
- * Serializes a message.
- */
-class SendMessageVisitor: public MessageVisitorBase
-{
-public:
-    SendMessageVisitor() : MessageVisitorBase() { }
-    virtual ~SendMessageVisitor() = default;
-    void handshake(HandshakeMessage const & msg_in);
-    void handshakeResponse(HandshakeResponseMessage const & msg_in);
-    void ping(PingMessage const & msg_in);
-    void pingResponse(PingResponseMessage const & msg_in);
-    void otherPeer(OtherPeerMessage const & msg_in);
-    string getMessage() const { return myMessage; }
-
-private:
-    string myMessage;
-};
-
-void SendMessageVisitor::handshake(HandshakeMessage const & msg_in)
-{
-    myMessage = "HANDSH " + msg_in.getYourAddr() + " " + msg_in.getMyAddr();
-}
-
-void SendMessageVisitor::handshakeResponse(HandshakeResponseMessage const & msg_in)
-{
-    myMessage = "HANDSHRESP " + msg_in.getMyAddr() + " " + msg_in.getYourAddr();
-}
-
-void SendMessageVisitor::ping(PingMessage const & msg_in)
-{
-    myMessage = "PING " + msg_in.getText();
-}
-
-void SendMessageVisitor::pingResponse(PingResponseMessage const & msg_in)
-{
-    myMessage = "PINGRESP " + msg_in.getText();
-}
-
-void SendMessageVisitor::otherPeer(OtherPeerMessage const & msg_in)
-{
-    myMessage = "OPEER " + msg_in.getHost() + " " + to_string(msg_in.getPort());
-}
-
-
 NetClientBase::NetClientBase(BaseApp* app_in, string const & nodeAddr_in) :
 myApp(app_in),
 myNodeAddr(nodeAddr_in),
@@ -86,7 +41,7 @@ int NetClientBase::sendMessage(BaseMessage const & msg_in)
         return 0;
     }
     myState = State::Sending;
-    SendMessageVisitor visitor;
+    SerializerMessageVisitor visitor;
     msg_in.visit(visitor);
     string msg = visitor.getMessage();
     //cout << "sendMessage " << msg.length() << " '" << msg << "'" << endl;
@@ -201,7 +156,7 @@ void NetClientBase::doProcessReceivedBuffer()
         return;
     }
     int terminatorIdx;
-    while ((terminatorIdx = myReceiveBuffer.find('\n')) >= 0)
+    while ((myReceiveBuffer.length() > 0) && ((terminatorIdx = myReceiveBuffer.find('\n')) >= 0))
     {
         string msg1 = myReceiveBuffer.substr(0, terminatorIdx); // without the terminator
         myReceiveBuffer = myReceiveBuffer.substr(terminatorIdx + 1);
@@ -213,36 +168,16 @@ void NetClientBase::doProcessReceivedBuffer()
             std::stringstream ss(msg1);       // Insert the string into a stream
             while (ss >> buf) tokens.push_back(buf);
         }
-        assert(myApp != nullptr);
-        if (tokens.size() >= 3 && tokens[0] == "HANDSH")
-        {
-            myState = State::Received;
-            myApp->messageReceived(*this, HandshakeMessage(tokens[1], tokens[2]));
-        }
-        else if (tokens.size() >= 3 && tokens[0] == "HANDSHRESP")
-        {
-            myState = State::Received;
-            myApp->messageReceived(*this, HandshakeResponseMessage(tokens[1], tokens[2]));
-        }
-        else if (tokens.size() >= 2 && tokens[0] == "PING")
-        {
-            myState = State::Received;
-            myApp->messageReceived(*this, PingMessage(tokens[1]));
-        }
-        else if (tokens.size() >= 2 && tokens[0] == "PINGRESP")
-        {
-            myState = State::Received;
-            myApp->messageReceived(*this, PingResponseMessage(tokens[1]));
-        }
-        else if (tokens.size() >= 3 && tokens[0] == "OPEER")
-        {
-            myState = State::Received;
-            myApp->messageReceived(*this, OtherPeerMessage(tokens[1], stoi(tokens[2])));
-        }
-        else
+        BaseMessage* msg = MessageDeserializer::parseMessage(tokens);
+        if (msg == nullptr)
         {
             cerr << "Error: Unparseable message '" << msg1 << "' " << tokens.size() << endl;
+            continue;
         }
+        myState = State::Received;
+        assert(myApp != nullptr);
+        myApp->messageReceived(*this, *msg);
+        delete msg;
     }
 }
 

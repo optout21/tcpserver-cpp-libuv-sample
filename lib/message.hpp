@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace sample
 {
@@ -108,5 +109,34 @@ namespace sample
         virtual void pingResponse(PingResponseMessage const & msg_in) = 0;
         virtual void otherPeer(OtherPeerMessage const & msg_in) = 0;
 	    virtual ~MessageVisitorBase() = default;
+    };
+
+    /**
+     * Serializes a message.
+     */
+    class SerializerMessageVisitor: public MessageVisitorBase
+    {
+    public:
+        SerializerMessageVisitor() : MessageVisitorBase() { }
+        virtual ~SerializerMessageVisitor() = default;
+        void handshake(HandshakeMessage const & msg_in);
+        void handshakeResponse(HandshakeResponseMessage const & msg_in);
+        void ping(PingMessage const & msg_in);
+        void pingResponse(PingResponseMessage const & msg_in);
+        void otherPeer(OtherPeerMessage const & msg_in);
+        std::string getMessage() const { return myMessage; }
+
+    private:
+        std::string myMessage;
+    };
+
+    /**
+     * Deserialize messages.
+     */
+    class MessageDeserializer
+    {
+    public:
+        /// Create new message object from the given tokens, if possible.
+        static BaseMessage* parseMessage(std::vector<std::string> const & tokens);
     };
 }

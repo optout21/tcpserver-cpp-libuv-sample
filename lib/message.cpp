@@ -96,3 +96,58 @@ string OtherPeerMessage::toString() const
 {
     return "OtherPeer " + myHost + ":" + to_string(myPort);
 }
+
+
+void SerializerMessageVisitor::handshake(HandshakeMessage const & msg_in)
+{
+    myMessage = "HANDSH " + msg_in.getYourAddr() + " " + msg_in.getMyAddr();
+}
+
+void SerializerMessageVisitor::handshakeResponse(HandshakeResponseMessage const & msg_in)
+{
+    myMessage = "HANDSHRESP " + msg_in.getMyAddr() + " " + msg_in.getYourAddr();
+}
+
+void SerializerMessageVisitor::ping(PingMessage const & msg_in)
+{
+    myMessage = "PING " + msg_in.getText();
+}
+
+void SerializerMessageVisitor::pingResponse(PingResponseMessage const & msg_in)
+{
+    myMessage = "PINGRESP " + msg_in.getText();
+}
+
+void SerializerMessageVisitor::otherPeer(OtherPeerMessage const & msg_in)
+{
+    myMessage = "OPEER " + msg_in.getHost() + " " + to_string(msg_in.getPort());
+}
+
+BaseMessage* MessageDeserializer::parseMessage(std::vector<std::string> const & tokens)
+{
+    if (tokens.size() == 0)
+    {
+        return nullptr;
+    }
+    if (tokens[0] == "HANDSH" && tokens.size() >= 3)
+    {
+        return new HandshakeMessage(tokens[1], tokens[2]);
+    }
+    else if (tokens[0] == "HANDSHRESP" && tokens.size() >= 3)
+    {
+        return new HandshakeResponseMessage(tokens[1], tokens[2]);
+    }
+    else if (tokens[0] == "PING" && tokens.size() >= 2)
+    {
+        return new PingMessage(tokens[1]);
+    }
+    else if (tokens[0] == "PINGRESP" && tokens.size() >= 2)
+    {
+        return new PingResponseMessage(tokens[1]);
+    }
+    else if (tokens[0] == "OPEER" && tokens.size() >= 3)
+    {
+        return new OtherPeerMessage(tokens[1], stoi(tokens[2]));
+    }
+    return nullptr;
+}
