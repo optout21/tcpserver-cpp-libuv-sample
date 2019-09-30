@@ -50,7 +50,7 @@ void PeerClientOut::process()
                 timer->data = (void*)dynamic_cast<IUvSocket*>(this);
                 uv_timer_start(timer, PeerClientOut::on_timer, pingPeriod, pingPeriod);
                 mySendCounter = 0;
-                HandshakeMessage msg(getNodeAddr(), myApp->getName());
+                HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
                 sendMessage(msg);
                 sendOtherPeers();
             }

@@ -353,7 +353,7 @@ void NetClientOut::process()
         case State::Connected:
             {
                 mySendCounter = 0;
-                HandshakeMessage msg(getNodeAddr(), myApp->getName());
+                HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
                 sendMessage(msg);
             }
             break;

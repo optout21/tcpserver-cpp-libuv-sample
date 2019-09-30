@@ -10,8 +10,9 @@ myType(type_in)
 }
 
 
-HandshakeMessage::HandshakeMessage(string yourAddr_in, string myAddr_in) :
+HandshakeMessage::HandshakeMessage(string myVersion_in, string yourAddr_in, string myAddr_in) :
 BaseMessage(MessageType::Handshake),
+myMyVersion(myVersion_in),
 myYourAddr(yourAddr_in),
 myMyAddr(myAddr_in)
 {
@@ -24,12 +25,13 @@ void HandshakeMessage::visit(MessageVisitorBase & visitor_in) const
 
 string HandshakeMessage::toString() const
 {
-    return "HandSh " + myYourAddr + " " + myMyAddr;
+    return "HandSh " + myMyVersion + " " + myYourAddr + " " + myMyAddr;
 }
 
 
-HandshakeResponseMessage::HandshakeResponseMessage(string myAddr_in, string yourAddr_in) :
+HandshakeResponseMessage::HandshakeResponseMessage(string myVersion_in, string myAddr_in, string yourAddr_in) :
 BaseMessage(MessageType::HandshakeResponse),
+myMyVersion(myVersion_in),
 myMyAddr(myAddr_in),
 myYourAddr(yourAddr_in)
 {
@@ -42,7 +44,7 @@ void HandshakeResponseMessage::visit(MessageVisitorBase & visitor_in) const
 
 string HandshakeResponseMessage::toString() const
 {
-    return "HandShResp " + myMyAddr + " " + myYourAddr;
+    return "HandShResp " + myMyVersion + " " + myMyAddr + " " + myYourAddr;
 }
 
 
@@ -100,12 +102,12 @@ string OtherPeerMessage::toString() const
 
 void SerializerMessageVisitor::handshake(HandshakeMessage const & msg_in)
 {
-    myMessage = "HANDSH " + msg_in.getYourAddr() + " " + msg_in.getMyAddr();
+    myMessage = "HANDSH " + msg_in.getMyVersion() + " " + msg_in.getYourAddr() + " " + msg_in.getMyAddr();
 }
 
 void SerializerMessageVisitor::handshakeResponse(HandshakeResponseMessage const & msg_in)
 {
-    myMessage = "HANDSHRESP " + msg_in.getMyAddr() + " " + msg_in.getYourAddr();
+    myMessage = "HANDSHRESP " + msg_in.getMyVersion() + " " + msg_in.getMyAddr() + " " + msg_in.getYourAddr();
 }
 
 void SerializerMessageVisitor::ping(PingMessage const & msg_in)
@@ -129,13 +131,13 @@ BaseMessage* MessageDeserializer::parseMessage(std::vector<std::string> const & 
     {
         return nullptr;
     }
-    if (tokens[0] == "HANDSH" && tokens.size() >= 3)
+    if (tokens[0] == "HANDSH" && tokens.size() >= 4)
     {
-        return new HandshakeMessage(tokens[1], tokens[2]);
+        return new HandshakeMessage(tokens[1], tokens[2], tokens[3]);
     }
-    else if (tokens[0] == "HANDSHRESP" && tokens.size() >= 3)
+    else if (tokens[0] == "HANDSHRESP" && tokens.size() >= 4)
     {
-        return new HandshakeResponseMessage(tokens[1], tokens[2]);
+        return new HandshakeResponseMessage(tokens[1], tokens[2], tokens[3]);
     }
     else if (tokens[0] == "PING" && tokens.size() >= 2)
     {

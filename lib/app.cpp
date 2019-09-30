@@ -72,7 +72,13 @@ void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & m
             {
                 HandshakeMessage const & hsMsg = dynamic_cast<HandshakeMessage const &>(msg_in);
                 //cout << "Handshake message received, '" << hsMsg.getMyAddr() << "'" << endl;
-                HandshakeResponseMessage resp(myName, client_in.getNodeAddr());
+                if (hsMsg.getMyVersion() != "V01")
+                {
+                    cerr << "Wrong version ''" << hsMsg.getMyVersion() << "'" << endl;
+                    client_in.close();
+                    return;
+                }
+                HandshakeResponseMessage resp("V01", myName, client_in.getNodeAddr());
                 client_in.sendMessage(resp);
             }
             break;

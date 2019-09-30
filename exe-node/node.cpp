@@ -199,7 +199,13 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
             {
                 HandshakeMessage const & hsMsg = dynamic_cast<HandshakeMessage const &>(msg_in);
                 //cout << "Handshake message received, '" << hsMsg.getMyAddr() << "'" << endl;
-                HandshakeResponseMessage resp(myName, client_in.getNodeAddr());
+                if (hsMsg.getMyVersion() != "V01")
+                {
+                    cerr << "Wrong version ''" << hsMsg.getMyVersion() << "'" << endl;
+                    client_in.close();
+                    return;
+                }
+                HandshakeResponseMessage resp("V01", myName, client_in.getNodeAddr());
                 client_in.sendMessage(resp);
                 // try to connect ougoing too, host taken from actual remote peer, port reported by peer
                 string reportedPeerName = hsMsg.getMyAddr();
@@ -229,6 +235,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                 OtherPeerMessage const & peerMsg = dynamic_cast<OtherPeerMessage const &>(msg_in);
                 //cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
                 addOutPeer(peerMsg.getHost(), peerMsg.getPort(), false);
+                tryOutConnections();
             }
             break;
 

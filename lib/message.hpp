@@ -36,13 +36,15 @@ namespace sample
     class HandshakeMessage: public BaseMessage
     {
     public:
-        HandshakeMessage(std::string yourAddr_in, std::string myAddr_in);
+        HandshakeMessage(std::string myVersion_in, std::string yourAddr_in, std::string myAddr_in);
+        std::string getMyVersion() const { return myMyVersion; }
         std::string getYourAddr() const { return myYourAddr; }
         std::string getMyAddr() const { return myMyAddr; }
         void visit(MessageVisitorBase & visitor_in) const;
         std::string toString() const;
 
     private:
+        std::string myMyVersion;
         std::string myYourAddr;
         std::string myMyAddr;
     };
@@ -50,13 +52,15 @@ namespace sample
     class HandshakeResponseMessage: public BaseMessage
     {
     public:
-        HandshakeResponseMessage(std::string myAddr_in, std::string yourAddr_in);
+        HandshakeResponseMessage(std::string myVersion_in, std::string myAddr_in, std::string yourAddr_in);
+        std::string getMyVersion() const { return myMyVersion; }
         std::string getMyAddr() const { return myMyAddr; }
         std::string getYourAddr() const { return myYourAddr; }
         void visit(MessageVisitorBase & visitor_in) const;
         std::string toString() const;
 
     private:
+        std::string myMyVersion;
         std::string myMyAddr;
         std::string myYourAddr;
     };
@@ -111,9 +115,7 @@ namespace sample
 	    virtual ~MessageVisitorBase() = default;
     };
 
-    /**
-     * Serializes a message.
-     */
+    /// Serializes a message.
     class SerializerMessageVisitor: public MessageVisitorBase
     {
     public:
@@ -130,9 +132,7 @@ namespace sample
         std::string myMessage;
     };
 
-    /**
-     * Deserialize messages.
-     */
+    /// Deserialize messages.
     class MessageDeserializer
     {
     public:
