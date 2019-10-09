@@ -262,7 +262,7 @@ vector<NodeApp::EndPoint> NodeApp::getOutPeers() const
     vector<EndPoint> peers;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.myOutFlag && i->second.myOutClient != nullptr)
+        if (i->second.myOutFlag && i->second.myOutClient != nullptr && i->second.myOutClient->isConnected())
         {
             peers.push_back(EndPoint { i->second.myOutHost, i->second.myOutPort });
         }
