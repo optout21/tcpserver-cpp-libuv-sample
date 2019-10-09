@@ -380,7 +380,7 @@ void NetClientOut::process()
             }
             else if (mySendCounter >= 1)
             {
-                PingMessage msg("Ping_" + getNodeAddr() + "_" + to_string(mySendCounter));
+                PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
                 sendMessage(msg);
             }
             break;

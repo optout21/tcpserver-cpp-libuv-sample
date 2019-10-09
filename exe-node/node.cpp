@@ -11,12 +11,10 @@ using namespace sample;
 using namespace std;
 
 
-NodeApp::PeerInfo::PeerInfo(string endpoint_in) :
+NodeApp::PeerInfo::PeerInfo(Endpoint endpoint_in) :
 myEndpoint(endpoint_in),
 myOutClient(nullptr),
 myInClient(nullptr),
-myOutHost(""),
-myOutPort(0),
 myOutFlag(false),
 myStickyOutFlag(false),
 myOutConnTryCount(0)
@@ -24,11 +22,9 @@ myOutConnTryCount(0)
 }
 
 NodeApp::PeerInfo::PeerInfo(std::string outHost_in, int outPort_in, bool sticky_in) :
-myEndpoint(outHost_in + ":" + to_string(outPort_in)),
+myEndpoint(Endpoint(outHost_in, outPort_in)),
 myOutClient(nullptr),
 myInClient(nullptr),
-myOutHost(outHost_in),
-myOutPort(outPort_in),
 myOutFlag(true),
 myStickyOutFlag(sticky_in),
 myOutConnTryCount(0)
@@ -100,13 +96,13 @@ void NodeApp::listenStarted(int port)
 void NodeApp::addOutPeer(std::string host_in, int port_in, bool sticky_in)
 {
     PeerInfo peer = PeerInfo(host_in, port_in, sticky_in);
-    if (myPeers.find(peer.myEndpoint) != myPeers.end())
+    if (myPeers.find(peer.myEndpoint.getEndpoint()) != myPeers.end())
     {
         // already present
         return;
     }
-    myPeers[peer.myEndpoint] = peer;
-    cout << "App: Added sticky peer " << peer.myEndpoint << " " << myPeers.size() << endl;
+    myPeers[peer.myEndpoint.getEndpoint()] = peer;
+    cout << "App: Added sticky peer " << peer.myEndpoint.getEndpoint() << " " << myPeers.size() << endl;
 }
 
 void NodeApp::tryOutConnections()
@@ -115,16 +111,16 @@ void NodeApp::tryOutConnections()
     // try to connect to clients
     for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        //cout << i->second.myOutFlag << " " << i->second.myStickyOutFlag << " " << i->second.myOutConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myOutHost << ":" << i->second.myOutPort << endl;
+        //cout << i->second.myOutFlag << " " << i->second.myStickyOutFlag << " " << i->second.myOutConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myEndpoint.getEndpoint() << endl;
         if (i->second.myOutFlag)
         {
             if (i->second.myOutConnTryCount == 0 || i->second.myStickyOutFlag)
             {
                 // try outgoing connection
-                //cout << "Trying out conn to " << i->second.myOutHost << ":" << i->second.myOutPort << endl;
+                //cout << "Trying out conn to " << i->second.myEndpoint.getEndpoint() << endl;
                 if (i->second.myOutClient == nullptr)
                 {
-                    auto peerout = make_shared<PeerClientOut>(this, i->second.myOutHost, i->second.myOutPort);
+                    auto peerout = make_shared<PeerClientOut>(this, i->second.myEndpoint.getHost(), i->second.myEndpoint.getPort());
                     i->second.setOutClient(peerout);
                 }
                 //cout << "isConnected " << i->second.myOutClient->isConnected() << endl;
@@ -154,7 +150,7 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     cout << "App: New incoming connection: " << cliaddr << endl;
     if (myPeers.find(cliaddr) == myPeers.end())
     {
-        myPeers[cliaddr] = PeerInfo(cliaddr);
+        myPeers[cliaddr] = PeerInfo(Endpoint(cliaddr));
     }
     auto cliIn = dynamic_pointer_cast<NetClientIn>(client_in);
     myPeers[cliaddr].setInClient(cliIn);
@@ -220,9 +216,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                 if (reportedPeerName.substr(0, 1) == ":")
                 {
                     string port = reportedPeerName.substr(1);
-                    string host = client_in.getNodeAddr();
-                    int idx = host.find(':');
-                    if (idx >= 0) host = host.substr(0, idx);
+                    string host = Endpoint(client_in.getNodeAddr()).getHost();
                     addOutPeer(host, stoi(port), false);
                 }
                 tryOutConnections();
@@ -233,7 +227,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
             {
                 PingMessage const & pingMsg = dynamic_cast<PingMessage const &>(msg_in);
                 //cout << "Ping message received, '" << pingMsg.getText() << "'" << endl;
-                PingResponseMessage resp("Resp_to_" + pingMsg.getText() + "_from_" + myName);
+                PingResponseMessage resp("Resp_from_" + myName + "_to_" + pingMsg.getText());
                 client_in.sendMessage(resp);
             }
             break;
@@ -257,14 +251,14 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
     }
 }
 
-vector<NodeApp::EndPoint> NodeApp::getOutPeers() const
+vector<Endpoint> NodeApp::getOutPeers() const
 {
-    vector<EndPoint> peers;
+    vector<Endpoint> peers;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
         if (i->second.myOutFlag && i->second.myOutClient != nullptr && i->second.myOutClient->isConnected())
         {
-            peers.push_back(EndPoint { i->second.myOutHost, i->second.myOutPort });
+            peers.push_back(i->second.myEndpoint);
         }
     }
     return peers;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../lib/app.hpp"
+#include "../lib/endpoint.hpp"
 
 #include <map>
 #include <memory>
@@ -36,7 +37,7 @@ namespace sample
         {
         public:
             PeerInfo() = default;
-            PeerInfo(std::string endpoint_in);
+            PeerInfo(Endpoint endpoint_in);
             PeerInfo(std::string outHost_in, int outPort_in, bool sticky_in);
             void setOutClient(std::shared_ptr<PeerClientOut>& outClient_in);
             void setInClient(std::shared_ptr<NetClientIn>& inClient_in);
@@ -44,25 +45,19 @@ namespace sample
             void resetInClient();
 
         public:
-            std::string myEndpoint;
+            Endpoint myEndpoint;
             int myOutConnTryCount;
             // connection towards this peer; may be null
             std::shared_ptr<PeerClientOut> myOutClient;
             // connection from this peer; may be null
             std::shared_ptr<NetClientIn> myInClient;
-            std::string myOutHost;
-            int myOutPort;
+            //std::string myOutHost;
+            //int myOutPort;
             bool myOutFlag;
             bool myStickyOutFlag;
         };
 
-        class EndPoint
-        {
-        public:
-            std::string myHost;
-            int myPort;
-        };
-        std::vector<EndPoint> getOutPeers() const;
+        std::vector<Endpoint> getOutPeers() const;
 
     protected:
         NetHandler* myNetHandler;

@@ -87,7 +87,7 @@ void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & m
             {
                 PingMessage const & pingMsg = dynamic_cast<PingMessage const &>(msg_in);
                 //cout << "Ping message received, '" << pingMsg.getText() << "'" << endl;
-                PingResponseMessage resp("Resp_to_" + pingMsg.getText() + "_from_" + myName);
+                PingResponseMessage resp("Resp_from_" + myName + "_to_" + pingMsg.getText());
                 client_in.sendMessage(resp);
             }
             break;

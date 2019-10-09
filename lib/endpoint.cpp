@@ -27,3 +27,9 @@ Endpoint::Endpoint(string endpointStr_in)
         myPort = 0;
     }
 }
+
+Endpoint::Endpoint(std::string host_in, int port_in)
+{
+    myHost = host_in;
+    myPort = port_in;
+}

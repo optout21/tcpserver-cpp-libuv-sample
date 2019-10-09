@@ -42,7 +42,7 @@ void PeerClientOut::on_timer(uv_timer_t* handle)
 void PeerClientOut::onTimer(uv_timer_t* handle)
 {
     //cout << "onTimer " << myState << " " << isConnected() << " " << (long)handle << endl;
-    PingMessage msg("Ping_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
+    PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
     sendOtherPeers();
 }
@@ -102,11 +102,11 @@ void PeerClientOut::sendOtherPeers()
         {
             return;
         }
-        string ep = i->myHost + ":" + to_string(i->myPort);
+        string ep = i->getEndpoint();
         if (ep != getNodeAddr())
         {
-            //cout << "sendOtherPeers " << getNodeAddr() << " " << i->myHost << ":" << i->myPort << endl;
-            sendMessage(OtherPeerMessage(i->myHost, i->myPort));
+            //cout << "sendOtherPeers " << getNodeAddr() << " " << i->getEndpoint() << endl;
+            sendMessage(OtherPeerMessage(i->getHost(), i->getPort()));
         }
     }
 }
