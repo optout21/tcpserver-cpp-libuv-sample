@@ -1,5 +1,7 @@
 # sources of this exec
 add_executable(tcp-libuv-node
+	endpoint.cpp
+	endpoint.hpp
 	main.cpp
 	node.cpp
     node.hpp

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "endpoint.hpp"
 #include "../lib/app.hpp"
-#include "../lib/endpoint.hpp"
 
 #include <map>
 #include <memory>

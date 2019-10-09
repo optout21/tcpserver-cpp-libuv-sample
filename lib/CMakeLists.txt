@@ -4,8 +4,6 @@ find_package(Threads)
 add_library(libtcp-libuv
     app.cpp
     app.hpp
-    endpoint.cpp
-    endpoint.hpp
     message.cpp
     message.hpp
     net_client.cpp

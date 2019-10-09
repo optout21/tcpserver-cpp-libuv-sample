@@ -1,8 +1,8 @@
 #include "node.hpp"
 #include "peer_conn.hpp"
+#include "endpoint.hpp"
 #include "../lib/net_handler.hpp"
 #include "../lib/net_client.hpp"
-#include "../lib/endpoint.hpp"
 
 #include <cassert>
 #include <iostream>
