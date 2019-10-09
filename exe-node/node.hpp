@@ -13,7 +13,7 @@ namespace sample
     class NetClientIn; // forward
     class PeerClientOut; // forward
 
-    class NodeApp: public BaseApp
+    class NodeApp: public ServerApp
     {
     public:
         NodeApp();
@@ -31,6 +31,8 @@ namespace sample
         void connectionClosed(NetClientBase* client_in);
         /// Called when an incoming message is received
         void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in);
+        // Send all known active out peer connections to this peer
+        void sendOtherPeers(NetClientBase & client_in);
         virtual std::string getName() { return myName; }
 
         class PeerInfo

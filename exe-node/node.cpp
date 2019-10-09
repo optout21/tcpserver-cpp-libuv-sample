@@ -53,7 +53,7 @@ void NodeApp::PeerInfo::resetInClient()
 
 
 NodeApp::NodeApp() :
-BaseApp()
+ServerApp()
 {
     myNetHandler = new NetHandler(this);
 }
@@ -153,6 +153,10 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
         myPeers[cliaddr] = PeerInfo(Endpoint(cliaddr));
     }
     auto cliIn = dynamic_pointer_cast<NetClientIn>(client_in);
+    if (cliIn == nullptr)
+    {
+        cerr << "Error null incoming client" << endl;
+    }
     myPeers[cliaddr].setInClient(cliIn);
 }
 
@@ -220,6 +224,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                     addOutPeer(host, stoi(port), false);
                 }
                 tryOutConnections();
+                //sendOtherPeers(client_in);
             }
             break;
 
@@ -235,7 +240,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
         case MessageType::OtherPeer:
             {
                 OtherPeerMessage const & peerMsg = dynamic_cast<OtherPeerMessage const &>(msg_in);
-                //cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
+                cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
                 addOutPeer(peerMsg.getHost(), peerMsg.getPort(), false);
                 tryOutConnections();
             }
@@ -248,6 +253,27 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
 
         default:
             assert(false);
+    }
+}
+
+void NodeApp::sendOtherPeers(NetClientBase & client_in)
+{
+    // send current outgoing connection addresses
+    auto peers = getOutPeers();
+    cout << "NodeApp::sendOtherPeers " << peers.size() << " " << client_in.getNodeAddr() << endl;
+    for(auto i = peers.begin(); i != peers.end(); ++i)
+    {
+        if (!client_in.isConnected())
+        {
+            return;
+        }
+        string ep = i->getEndpoint();
+        cout << ep << " " << client_in.getNodeAddr() << endl;
+        if (ep != client_in.getNodeAddr())
+        {
+            cout << "sendOtherPeers " << client_in.getNodeAddr() << " " << i->getEndpoint() << endl;
+            client_in.sendMessage(OtherPeerMessage(i->getHost(), i->getPort()));
+        }
     }
 }
 

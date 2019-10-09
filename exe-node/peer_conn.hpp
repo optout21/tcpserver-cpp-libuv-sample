@@ -10,6 +10,9 @@ namespace sample
 {
     class BaseApp; // forward
 
+    /**
+     * Outgoing client: does periodic Ping indefinitely.
+     */
     class PeerClientOut: public NetClientOut
     {
     public:
@@ -18,10 +21,6 @@ namespace sample
         virtual void process();
         static void on_timer(uv_timer_t* handle);
         virtual void onTimer(uv_timer_t* handle);
-
-    private:
-        // Send all known active out peer connections to this peer
-        void sendOtherPeers();
 
     private:
         int mySendCounter;

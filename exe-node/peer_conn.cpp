@@ -44,7 +44,7 @@ void PeerClientOut::onTimer(uv_timer_t* handle)
     //cout << "onTimer " << myState << " " << isConnected() << " " << (long)handle << endl;
     PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
-    sendOtherPeers();
+    ((NodeApp*)myApp)->sendOtherPeers(*(dynamic_cast<NetClientBase*>(this)));
 }
 
 void PeerClientOut::process()
@@ -64,7 +64,7 @@ void PeerClientOut::process()
                 mySendCounter = 0;
                 HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
                 sendMessage(msg);
-                sendOtherPeers();
+                ((NodeApp*)myApp)->sendOtherPeers(*(dynamic_cast<NetClientBase*>(this)));
             }
             break;
 
@@ -90,23 +90,4 @@ void PeerClientOut::process()
             break;
     }
     return;
-}
-
-void PeerClientOut::sendOtherPeers()
-{
-    // send current outgoing connection addresses
-    auto peers = dynamic_cast<NodeApp*>(myApp)->getOutPeers();
-    for(auto i = peers.begin(); i != peers.end(); ++i)
-    {
-        if (myState == State::Closing || myState == State::Closed)
-        {
-            return;
-        }
-        string ep = i->getEndpoint();
-        if (ep != getNodeAddr())
-        {
-            //cout << "sendOtherPeers " << getNodeAddr() << " " << i->getEndpoint() << endl;
-            sendMessage(OtherPeerMessage(i->getHost(), i->getPort()));
-        }
-    }
 }

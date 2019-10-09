@@ -171,15 +171,16 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
     }
     //cout << "accept res " << res << endl;
     string clientAddr = getRemoteAddress(client);
+    //cout << "clientAddr " << clientAddr << endl;
     //{
     //    uv_os_fd_t fd;
     //    ::uv_fileno((uv_handle_t*)client, &fd);
     //    cout << "Accepted connection " << fd << " from " << clientAddr << endl;
     //}
+    assert(myApp != nullptr);
     shared_ptr<NetClientIn> cliin = make_shared<NetClientIn>((ServerApp*)myApp, client, clientAddr);
     shared_ptr<NetClientBase> cli = dynamic_pointer_cast<NetClientBase>(cliin);
     //cli->setSelfPtr(cli);
-    assert(myApp != nullptr);
     myApp->inConnectionReceived(cli);
     int error = cli->doRead();
 }
