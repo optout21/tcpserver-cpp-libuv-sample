@@ -25,9 +25,9 @@ BaseApp()
     myNetHandler = new NetHandler(this);
 }
 
-void ServerApp::start()
+void ServerApp::start(AppParams const & appParams_in)
 {
-    int actualPort = myNetHandler->startWithListen(5000, 10);
+    int actualPort = myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
     if (actualPort <= 0)
     {
         return;
@@ -103,7 +103,7 @@ BaseApp()
 {
 }
 
-void ClientApp::start()
+void ClientApp::start(AppParams const & appParams_in)
 {
     // create and connect clients, before starting the loop
     int n = 3;

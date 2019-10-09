@@ -243,7 +243,7 @@ int NetHandler::doBindAndListen(int port_in)
         cerr << "Listen error " << ::uv_strerror(res) << endl;
         return res;
     }
-    return res;
+    return 0;
 }
 
 int NetHandler::doListen(int port_in, int tryNextPorts_in)

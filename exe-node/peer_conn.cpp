@@ -11,14 +11,25 @@ using namespace std;
 
 PeerClientOut::PeerClientOut(BaseApp* app_in, string const & host_in, int port_in) :
 NetClientOut(app_in, host_in, port_in, 1),
-mySendCounter(0)
+mySendCounter(0),
+myTimer(nullptr)
 {
+}
+
+PeerClientOut::~PeerClientOut()
+{
+    //cout << "PeerClientOut::~PeerClientOut" << endl;
+    if (myTimer != nullptr)
+    {
+        uv_timer_stop(myTimer);
+        myTimer = nullptr;
+    }
 }
 
 void PeerClientOut::on_timer(uv_timer_t* handle)
 {
-    //cout << "on_timer " << endl;
     IUvSocket* uvSocket = (IUvSocket*)(handle->data);
+    //cout << "on_timer " << (long)handle << " " << (long)uvSocket << endl;
     if (uvSocket == nullptr)
     {
         cerr << "Fatal error: uvSocket is nullptr " << endl;
@@ -30,7 +41,7 @@ void PeerClientOut::on_timer(uv_timer_t* handle)
 
 void PeerClientOut::onTimer(uv_timer_t* handle)
 {
-    //cout << "onTimer " << endl;
+    //cout << "onTimer " << myState << " " << isConnected() << " " << (long)handle << endl;
     PingMessage msg("Ping_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
     sendOtherPeers();
@@ -43,12 +54,13 @@ void PeerClientOut::process()
     {
         case State::Connected:
             {
-                uv_timer_t* timer = new uv_timer_t();
-                uv_timer_init(NetHandler::getUvLoop(), timer);
+                myTimer = new uv_timer_t();
+                uv_timer_init(NetHandler::getUvLoop(), myTimer);
                 int pingPeriod = 3000; // ms
                 this->onTimer(nullptr);
-                timer->data = (void*)dynamic_cast<IUvSocket*>(this);
-                uv_timer_start(timer, PeerClientOut::on_timer, pingPeriod, pingPeriod);
+                myTimer->data = (void*)this;
+                //timer->data = (void*)dynamic_cast<IUvSocket*>(this);
+                uv_timer_start(myTimer, PeerClientOut::on_timer, pingPeriod, pingPeriod);
                 mySendCounter = 0;
                 HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
                 sendMessage(msg);

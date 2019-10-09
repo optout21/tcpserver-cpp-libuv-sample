@@ -2,6 +2,7 @@
 #include "peer_conn.hpp"
 #include "../lib/net_handler.hpp"
 #include "../lib/net_client.hpp"
+#include "../lib/endpoint.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -61,9 +62,16 @@ BaseApp()
     myNetHandler = new NetHandler(this);
 }
 
-void NodeApp::start()
+void NodeApp::start(AppParams const & appParams_in)
 {
-    int actualPort = myNetHandler->startWithListen(5000, 10);
+    // add sticky bootstrap peers
+    if (appParams_in.extraPeer.length() > 0)
+    {
+        Endpoint extraPeerEp(appParams_in.extraPeer);
+        addOutPeer(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
+    }
+
+    int actualPort = myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
     if (actualPort <= 0) return;
     myName = ":" + to_string(actualPort);
 }
@@ -72,9 +80,8 @@ void NodeApp::listenStarted(int port)
 {
     cout << "App: Listening on port " << port << endl;
 
-    // add sticky bootstrap peers
+    // add peers to localhost for testing, except for self
     int n = 2;
-    // try to connect to clients
     for (int i = 0; i < n; ++i)
     {
         int port1 = 5000 + i;
@@ -82,9 +89,10 @@ void NodeApp::listenStarted(int port)
         // skip connection to self
         if (port != port1)
         {
-            addOutPeer("127.0.0.1", port1, true);
+            addOutPeer("127.0.0.1", port1, false);
         }
     }
+   // try to connect to clients
     tryOutConnections();
 }
 
@@ -120,9 +128,9 @@ void NodeApp::tryOutConnections()
                     i->second.setOutClient(peerout);
                 }
                 //cout << "isConnected " << i->second.myOutClient->isConnected() << endl;
+                ++i->second.myOutConnTryCount;
                 if (!i->second.myOutClient->isConnected())
                 {
-                    ++i->second.myOutConnTryCount;
                     int res = i->second.myOutClient->connect();
                     if (res)
                     {
@@ -260,20 +268,4 @@ vector<NodeApp::EndPoint> NodeApp::getOutPeers() const
         }
     }
     return peers;
-}
-
-
-int main()
-{
-    cout << "TCP LibUV Node" << endl;
-
-    NodeApp app;
-    app.start();
-
-    cout << "Press Enter to exit ...";
-    cin.get();
-    cout << endl;
-
-    app.stop();
-    cout << "Done." << endl;
 }

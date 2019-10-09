@@ -3,6 +3,7 @@
 #include <uv.h>
 
 #include <vector>
+//#include <iostream>
 
 namespace sample
 {
@@ -13,6 +14,7 @@ namespace sample
     class IUvSocket
     {
     public:
+        virtual ~IUvSocket() { }
         virtual void onConnect(uv_connect_t* req, int status) { }
         virtual void onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) { }
         virtual void onWrite(uv_write_t* req, int status) { }

@@ -17,7 +17,7 @@ namespace sample
     public:
         NodeApp();
         /// Start listening and the UV processing loop
-        void start();
+        virtual void start(AppParams const & appParams_in);
         /// Stop the background thread loop, stop listening
         void stop();
         /// Called when server is listening on a port already

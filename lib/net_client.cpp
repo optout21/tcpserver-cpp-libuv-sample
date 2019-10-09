@@ -144,6 +144,7 @@ void NetClientBase::onWrite(uv_write_t* req, int status)
     {
         cerr << "write error " << status << " " << ::uv_strerror(status) << endl;
         //uv_close((uv_handle_t*) req->handle, NULL);
+        close();
         return;
     }
     process();
@@ -220,13 +221,14 @@ void NetClientBase::onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* b
             cerr << "Read error " << errtxt << " " << nread << " pending " << myReceiveBuffer.length() << endl;
         }
         // close socket
-        ::uv_close((uv_handle_t*)stream, NULL);
+        close();
         //delete stream;
         return;
     }
     if (nread == 0)
     {
         cerr << "Socket closed while reading " << ::uv_strerror(nread) << "  pending " << myReceiveBuffer.length() << endl;
+        close();
         //delete stream;
         return;
     }

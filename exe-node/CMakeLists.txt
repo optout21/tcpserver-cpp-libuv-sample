@@ -1,5 +1,6 @@
 # sources of this exec
 add_executable(tcp-libuv-node
+	main.cpp
 	node.cpp
     node.hpp
     peer_conn.cpp

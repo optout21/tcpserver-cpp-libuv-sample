@@ -10,6 +10,26 @@ namespace sample
     class NetClientBase; // forward
     class NetHandler; // forward
 
+    /**
+     * Params for the app.
+     */
+    struct AppParams
+    {
+    public:
+        AppParams(std::string extraPeer_in, int listenPort_in, int listenPortRange_in)
+        {
+            extraPeer = extraPeer_in;
+            listenPort = listenPort_in;
+            listenPortRange = listenPortRange_in;
+        }
+
+        std::string extraPeer;
+        int listenPort;
+        int listenPortRange;
+
+        void print();
+    };
+
     /*
      * Application main class, base class.
      */
@@ -17,7 +37,7 @@ namespace sample
     {
     public:
         BaseApp() = default;
-        virtual void start() = 0;
+        virtual void start(AppParams const & appParams_in) = 0;
         /// Called when server is listening on a port already
         virtual void listenStarted(int port);
         /// Called when a new incoming connection is received
@@ -34,7 +54,7 @@ namespace sample
     public:
         ServerApp();
         /// Start listening and the UV processing loop
-        void start();
+        virtual void start(AppParams const & appParams_in);
         /// Stop the background thread loop, stop listening
         void stop();
         /// Called when a new incoming connection is received
@@ -56,7 +76,7 @@ namespace sample
     public:
         ClientApp();
         /// Start the clients, connect, process events
-        void start();
+        virtual void start(AppParams const & appParams_in);
         void inConnectionReceived(std::shared_ptr<NetClientBase>& client_in) { }
         void connectionClosed(NetClientBase* client_in) { }
         void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in);

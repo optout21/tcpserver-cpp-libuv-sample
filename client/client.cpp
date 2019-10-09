@@ -10,7 +10,7 @@ int main()
     cout << "TCP LibUV Client" << endl;
 
     ClientApp app;
-    app.start();
+    app.start(AppParams("", 5000, 5));
 
     //cout << "Press Enter to exit ...";
     //cin.get();
