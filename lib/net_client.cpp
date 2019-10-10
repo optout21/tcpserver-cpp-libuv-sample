@@ -313,8 +313,13 @@ void NetClientOut::onConnect(uv_connect_t* req, int status)
         //uv_close((uv_handle_t*) req->handle, NULL);
         return;
     }
+
+    // obtain connected remote IP
+    string remoteAddr = NetHandler::getRemoteAddress((uv_tcp_t*)req->handle);
+
     myState = State::Connected;
-    cerr << "Connected to " << myHost << ":" << myPort << endl;
+
+    cout << "Connected to " << myHost << ":" << myPort << " (" << remoteAddr << ")" << endl;
     process();
 }
 

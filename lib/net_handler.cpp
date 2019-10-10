@@ -195,6 +195,7 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
     int res = ::uv_tcp_getpeername(socket_in, &sockaddr, &addrlen);
     if (res != 0)
     {
+        cerr << "Error from uv_tcp_getpeername " << res << " " << ::uv_err_name(res) << endl;
         return addr;
     }
     if (sockaddr.sa_family == AF_INET)
