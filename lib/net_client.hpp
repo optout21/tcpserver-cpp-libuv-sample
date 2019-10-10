@@ -35,9 +35,9 @@ namespace sample
         };
 
     public:
-        NetClientBase(BaseApp* app_in, std::string const & nodeAddr_in);
+        NetClientBase(BaseApp* app_in, std::string const & peerAddr_in);
         virtual ~NetClientBase();
-	    std::string getNodeAddr() const { return myNodeAddr; }
+	    std::string getPeerAddr() const { return myPeerAddr; }
         // Send a message to this peer
         int sendMessage(BaseMessage const & msg_in);
         int close();
@@ -63,7 +63,7 @@ namespace sample
         State myState;
 
     private:
-        std::string myNodeAddr;
+        std::string myPeerAddr;
         std::string myReceiveBuffer;
         uv_tcp_t* myUvStream;
     };
@@ -74,7 +74,7 @@ namespace sample
     class NetClientIn: public NetClientBase
     {
     public:
-        NetClientIn(ServerApp* app_in, uv_tcp_t* client_in, std::string const & nodeAddr_in);
+        NetClientIn(ServerApp* app_in, uv_tcp_t* client_in, std::string const & peerAddr_in);
     };
 
     /**

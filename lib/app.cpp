@@ -43,7 +43,7 @@ void ServerApp::stop()
 void ServerApp::inConnectionReceived(shared_ptr<NetClientBase>& client_in)
 {
     assert(client_in != nullptr);
-    string cliaddr = client_in->getNodeAddr();
+    string cliaddr = client_in->getPeerAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
     myClients[cliaddr] = client_in;
 }
@@ -51,7 +51,7 @@ void ServerApp::inConnectionReceived(shared_ptr<NetClientBase>& client_in)
 void ServerApp::connectionClosed(NetClientBase* client_in)
 {
     assert(client_in != nullptr);
-    string cliaddr = client_in->getNodeAddr();
+    string cliaddr = client_in->getPeerAddr();
     cout << "App: Connection done: " << cliaddr << endl;
     for(auto i = myClients.begin(); i != myClients.end(); ++i)
     {
@@ -65,7 +65,7 @@ void ServerApp::connectionClosed(NetClientBase* client_in)
 
 void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
-    cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
+    cout << "App: Received: from " << client_in.getPeerAddr() << " '" << msg_in.toString() << "'" << endl;
     switch (msg_in.getType())
     {
         case MessageType::Handshake:
@@ -78,7 +78,7 @@ void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & m
                     client_in.close();
                     return;
                 }
-                HandshakeResponseMessage resp("V01", myName, client_in.getNodeAddr());
+                HandshakeResponseMessage resp("V01", myName, client_in.getPeerAddr());
                 client_in.sendMessage(resp);
             }
             break;
@@ -133,5 +133,5 @@ void ClientApp::start(AppParams const & appParams_in)
 
 void ClientApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
-    cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
+    cout << "App: Received: from " << client_in.getPeerAddr() << " '" << msg_in.toString() << "'" << endl;
 }

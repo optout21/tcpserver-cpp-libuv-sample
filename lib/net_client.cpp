@@ -15,16 +15,16 @@ using namespace sample;
 using namespace std;
 
 
-NetClientBase::NetClientBase(BaseApp* app_in, string const & nodeAddr_in) :
+NetClientBase::NetClientBase(BaseApp* app_in, string const & peerAddr_in) :
 myApp(app_in),
-myNodeAddr(nodeAddr_in),
+myPeerAddr(peerAddr_in),
 myState(State::NotConnected)
 {
 }
 
 NetClientBase::~NetClientBase()
 {
-    //cout << "~NetClientBase " << myNodeAddr << endl;
+    //cout << "~NetClientBase " << myPeerAddr << endl;
 }
 
 void NetClientBase::setUvStream(uv_tcp_t* stream_in)
@@ -97,7 +97,7 @@ void NetClientBase::onClose(uv_handle_t* handle)
 
 int NetClientBase::close()
 {
-    //cout << "NetClientBase::close " << getNodeAddr() << endl;
+    //cout << "NetClientBase::close " << getPeerAddr() << endl;
     myState = State::Closing;
     uv_handle_t* handle = (uv_handle_t*)myUvStream;
     if (handle == nullptr) return 0;
@@ -105,7 +105,7 @@ int NetClientBase::close()
     if (::uv_is_closing(handle))
     {
         // already closing
-        cerr << "Warning: Socket is already closing " << getNodeAddr() << endl;
+        cerr << "Warning: Socket is already closing " << getPeerAddr() << endl;
         onClose(handle);
         return 0;
     }
@@ -161,7 +161,7 @@ void NetClientBase::doProcessReceivedBuffer()
     {
         string msg1 = myReceiveBuffer.substr(0, terminatorIdx); // without the terminator
         myReceiveBuffer = myReceiveBuffer.substr(terminatorIdx + 1);
-        //cout << "Incoming message: from " << myNodeAddr << " '" << msg1 << "' " << myReceiveBuffer.length() << endl;
+        //cout << "Incoming message: from " << myPeerAddr << " '" << msg1 << "' " << myReceiveBuffer.length() << endl;
         // split into tokens
         std::vector<std::string> tokens; // Create vector to hold our words
         {
@@ -274,8 +274,8 @@ bool NetClientBase::isConnected() const
     return true;
 }
 
-NetClientIn::NetClientIn(ServerApp* app_in, uv_tcp_t* socket_in, string const & nodeAddr_in) :
-NetClientBase(app_in, nodeAddr_in)
+NetClientIn::NetClientIn(ServerApp* app_in, uv_tcp_t* socket_in, string const & peerAddr_in) :
+NetClientBase(app_in, peerAddr_in)
 {
     setUvStream(socket_in);
     myState = State::Accepted;
@@ -359,7 +359,7 @@ void NetClientOut::process()
         case State::Connected:
             {
                 mySendCounter = 0;
-                HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
+                HandshakeMessage msg("V01", getPeerAddr(), myApp->getName());
                 sendMessage(msg);
             }
             break;
@@ -384,7 +384,7 @@ void NetClientOut::process()
             }
             else if (mySendCounter >= 1)
             {
-                PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
+                PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getPeerAddr() + "_" + to_string(mySendCounter));
                 sendMessage(msg);
             }
             break;

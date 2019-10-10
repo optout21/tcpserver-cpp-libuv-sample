@@ -146,7 +146,7 @@ void NodeApp::stop()
 void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
 {
     assert(client_in != nullptr);
-    string cliaddr = client_in->getNodeAddr();
+    string cliaddr = client_in->getPeerAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
     if (myPeers.find(cliaddr) == myPeers.end())
     {
@@ -163,7 +163,7 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
 void NodeApp::connectionClosed(NetClientBase* client_in)
 {
     assert(client_in != nullptr);
-    string cliaddr = client_in->getNodeAddr();
+    string cliaddr = client_in->getPeerAddr();
     cout << "App: Connection done: " << cliaddr << endl;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
@@ -199,7 +199,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
 {
     if (msg_in.getType() != MessageType::OtherPeer)
     {
-        cout << "App: Received: from " << client_in.getNodeAddr() << " '" << msg_in.toString() << "'" << endl;
+        cout << "App: Received: from " << client_in.getPeerAddr() << " '" << msg_in.toString() << "'" << endl;
     }
     switch (msg_in.getType())
     {
@@ -213,14 +213,14 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                     client_in.close();
                     return;
                 }
-                HandshakeResponseMessage resp("V01", myName, client_in.getNodeAddr());
+                HandshakeResponseMessage resp("V01", myName, client_in.getPeerAddr());
                 client_in.sendMessage(resp);
                 // try to connect ougoing too, host taken from actual remote peer, port reported by peer
                 string reportedPeerName = hsMsg.getMyAddr();
                 if (reportedPeerName.substr(0, 1) == ":")
                 {
                     string port = reportedPeerName.substr(1);
-                    string host = Endpoint(client_in.getNodeAddr()).getHost();
+                    string host = Endpoint(client_in.getPeerAddr()).getHost();
                     addOutPeer(host, stoi(port), false);
                 }
                 tryOutConnections();
@@ -260,7 +260,7 @@ void NodeApp::sendOtherPeers(NetClientBase & client_in)
 {
     // send current outgoing connection addresses
     auto peers = getOutPeers();
-    //cout << "NodeApp::sendOtherPeers " << peers.size() << " " << client_in.getNodeAddr() << endl;
+    //cout << "NodeApp::sendOtherPeers " << peers.size() << " " << client_in.getPeerAddr() << endl;
     for(auto i = peers.begin(); i != peers.end(); ++i)
     {
         if (!client_in.isConnected())
@@ -268,10 +268,10 @@ void NodeApp::sendOtherPeers(NetClientBase & client_in)
             return;
         }
         string ep = i->getEndpoint();
-        //cout << ep << " " << client_in.getNodeAddr() << endl;
-        if (ep != client_in.getNodeAddr())
+        //cout << ep << " " << client_in.getPeerAddr() << endl;
+        if (ep != client_in.getPeerAddr())
         {
-            //cout << "sendOtherPeers " << client_in.getNodeAddr() << " " << i->getEndpoint() << endl;
+            //cout << "sendOtherPeers " << client_in.getPeerAddr() << " " << i->getEndpoint() << endl;
             client_in.sendMessage(OtherPeerMessage(i->getHost(), i->getPort()));
         }
     }

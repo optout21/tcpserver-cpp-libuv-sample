@@ -42,7 +42,7 @@ void PeerClientOut::on_timer(uv_timer_t* handle)
 void PeerClientOut::onTimer(uv_timer_t* handle)
 {
     //cout << "onTimer " << myState << " " << isConnected() << " " << (long)handle << endl;
-    PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getNodeAddr() + "_" + to_string(mySendCounter));
+    PingMessage msg("Ping_from_" + myApp->getName() + "_to_" + getPeerAddr() + "_" + to_string(mySendCounter));
     sendMessage(msg);
     ((NodeApp*)myApp)->sendOtherPeers(*(dynamic_cast<NetClientBase*>(this)));
 }
@@ -62,7 +62,7 @@ void PeerClientOut::process()
                 //timer->data = (void*)dynamic_cast<IUvSocket*>(this);
                 uv_timer_start(myTimer, PeerClientOut::on_timer, pingPeriod, pingPeriod);
                 mySendCounter = 0;
-                HandshakeMessage msg("V01", getNodeAddr(), myApp->getName());
+                HandshakeMessage msg("V01", getPeerAddr(), myApp->getName());
                 sendMessage(msg);
                 ((NodeApp*)myApp)->sendOtherPeers(*(dynamic_cast<NetClientBase*>(this)));
             }
