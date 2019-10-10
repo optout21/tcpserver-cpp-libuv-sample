@@ -50,11 +50,23 @@ ServerApp()
 
 void NodeApp::start(AppParams const & appParams_in)
 {
-    // add sticky bootstrap peers
-    if (appParams_in.extraPeer.length() > 0)
+    // add constant peer candidates, for localhost
+    int n = 2;
+    for (int i = 0; i < n; ++i)
     {
-        Endpoint extraPeerEp(appParams_in.extraPeer);
-        addOutPeerCandidate(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
+        addOutPeerCandidate("localhost", 5000 + i, true);
+    }
+    // add extra peer candidates
+    if (appParams_in.extraPeers.size() > 0)
+    {
+        for(int i = 0; i < appParams_in.extraPeers.size(); ++i)
+        {
+            if (appParams_in.extraPeers[i].length() > 0)
+            {
+                Endpoint extraPeerEp(appParams_in.extraPeers[i]);
+                addOutPeerCandidate(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
+            }
+        }
     }
 
     int actualPort = myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
@@ -65,20 +77,7 @@ void NodeApp::start(AppParams const & appParams_in)
 void NodeApp::listenStarted(int port)
 {
     cout << "App: Listening on port " << port << endl;
-
-    // add peers to localhost for testing, except for self
-    int n = 2;
-    for (int i = 0; i < n; ++i)
-    {
-        int port1 = 5000 + i;
-        //clis[i] = nullptr;
-        // skip connection to self
-        if (port != port1)
-        {
-            addOutPeerCandidate("localhost", port1, true);
-        }
-    }
-   // try to connect to clients
+    // try to connect to clients
     tryOutConnections();
 }
 
@@ -158,6 +157,15 @@ bool NodeApp::isPeerOutConnected(string peerAddr_in)
 
 int NodeApp::tryOutConnection(std::string host_in, int port_in)
 {
+    // exclude localhost connections to self
+    if ((":" + to_string(port_in)) == myName)
+    {
+        if (host_in == "localhost" || host_in == "127.0.0.1" || host_in == "::1" || host_in == "[::1]")
+        {
+            cerr << "Ignoring peer candidate to self (" << host_in << ":" << port_in << ")" << endl;
+            return 0;
+        }
+    }
     // try outgoing connection
     Endpoint ep = Endpoint(host_in, port_in);
     string key = ep.getEndpoint();

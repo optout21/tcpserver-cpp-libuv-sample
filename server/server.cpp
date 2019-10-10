@@ -10,7 +10,7 @@ int main()
     cout << "TCP LibUV Server" << endl;
 
     ServerApp app;
-    app.start(AppParams("", 5000, 5));
+    app.start(AppParams(5000, 5));
 
     cout << "Press Enter to exit ...";
     cin.get();

@@ -19,13 +19,14 @@ void usage(AppParams const & params_in)
 
 void processArgs(AppParams & params_inout, int argn, char ** argc)
 {
+    params_inout.extraPeers.clear();
     for (int i = 0; i < argn; ++i)
     {
         if (string(argc[i]) == "-peer")
         {
             if (i + 1 >= argn) break;
             ++i;
-            params_inout.extraPeer = argc[i];
+            params_inout.extraPeers.push_back(argc[i]);
         }
         else if (string(argc[i]) == "-port")
         {
@@ -39,10 +40,10 @@ void processArgs(AppParams & params_inout, int argn, char ** argc)
 
 void printArgs(AppParams const & params_in)
 {
-    if (params_in.extraPeer.length() > 0)
-        cout << "Extra peer:     " << params_in.extraPeer << endl;
+    if (params_in.extraPeers.size() == 0)
+        cout << "Extra peers:     (none)" << endl;
     else
-        cout << "Extra peer:     (none)" << endl;
+        cout << "Extra peers:     "; for(int i = 0; i < params_in.extraPeers.size(); ++i) cout << params_in.extraPeers[i] << " "; cout << endl;
     cout << "Listening port: " << params_in.listenPort;
     if (params_in.listenPortRange > 1) cout << " (" << params_in.listenPort << " -- " << params_in.listenPort + params_in.listenPortRange - 1 << ")";
     cout << endl;
@@ -51,7 +52,7 @@ void printArgs(AppParams const & params_in)
 
 int main(int argn, char ** argc)
 {
-    AppParams appParams("", 5000, 10);
+    AppParams appParams(5000, 10);
 
     usage(appParams);
     processArgs(appParams, argn, argc);

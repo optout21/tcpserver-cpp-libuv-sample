@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace sample
 {
@@ -16,14 +17,19 @@ namespace sample
     struct AppParams
     {
     public:
-        AppParams(std::string extraPeer_in, int listenPort_in, int listenPortRange_in)
+        AppParams(int listenPort_in, int listenPortRange_in)
         {
-            extraPeer = extraPeer_in;
+            listenPort = listenPort_in;
+            listenPortRange = listenPortRange_in;
+        }
+        AppParams(std::vector<std::string> extraPeers_in, int listenPort_in, int listenPortRange_in)
+        {
+            extraPeers = extraPeers_in;
             listenPort = listenPort_in;
             listenPortRange = listenPortRange_in;
         }
 
-        std::string extraPeer;
+        std::vector<std::string> extraPeers;
         int listenPort;
         int listenPortRange;
 

@@ -110,7 +110,7 @@ void ClientApp::start(AppParams const & appParams_in)
     auto clis = new NetClientBase*[n];
     for (int i = 0; i < n; ++i)
     {
-        auto nc = new NetClientOut(this, "localhost", 5000 + i, 3 + i);
+        auto nc = new NetClientOut(this, "localhost", appParams_in.listenPort + i, 3 + i);
         clis[i] = nc;
         int res = nc->connect();
         if (res)
