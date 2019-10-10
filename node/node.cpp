@@ -11,25 +11,15 @@ using namespace sample;
 using namespace std;
 
 
-NodeApp::PeerInfo::PeerInfo(Endpoint endpoint_in) :
-myEndpoint(endpoint_in),
-myOutClient(nullptr),
-myInClient(nullptr),
-myOutFlag(false),
-myStickyOutFlag(false),
-myOutConnTryCount(0)
+NodeApp::PeerCandidateInfo::PeerCandidateInfo(std::string host_in, int port_in, bool sticky_in) :
+myHost(host_in),
+myPort(port_in),
+myStickyFlag(sticky_in),
+myConnTryCount(0),
+myConnectedCount(0)
 {
 }
 
-NodeApp::PeerInfo::PeerInfo(std::string outHost_in, int outPort_in, bool sticky_in) :
-myEndpoint(Endpoint(outHost_in, outPort_in)),
-myOutClient(nullptr),
-myInClient(nullptr),
-myOutFlag(true),
-myStickyOutFlag(sticky_in),
-myOutConnTryCount(0)
-{
-}
 
 void NodeApp::PeerInfo::setOutClient(std::shared_ptr<PeerClientOut>& outClient_in)
 {
@@ -64,7 +54,7 @@ void NodeApp::start(AppParams const & appParams_in)
     if (appParams_in.extraPeer.length() > 0)
     {
         Endpoint extraPeerEp(appParams_in.extraPeer);
-        addOutPeer(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
+        addOutPeerCandidate(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
     }
 
     int actualPort = myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
@@ -85,7 +75,7 @@ void NodeApp::listenStarted(int port)
         // skip connection to self
         if (port != port1)
         {
-            addOutPeer("127.0.0.1", port1, false);
+            addOutPeerCandidate("localhost", port1, true);
         }
     }
    // try to connect to clients
@@ -93,49 +83,99 @@ void NodeApp::listenStarted(int port)
 }
 
 
-void NodeApp::addOutPeer(std::string host_in, int port_in, bool sticky_in)
+void NodeApp::addOutPeerCandidate(std::string host_in, int port_in, bool sticky_in)
 {
-    PeerInfo peer = PeerInfo(host_in, port_in, sticky_in);
-    if (myPeers.find(peer.myEndpoint.getEndpoint()) != myPeers.end())
+    PeerCandidateInfo pc = PeerCandidateInfo(host_in, port_in, sticky_in);
+    string key = host_in + ":" + to_string(port_in);
+    if (myPeerCands.find(key) != myPeerCands.end())
     {
         // already present
         return;
     }
-    myPeers[peer.myEndpoint.getEndpoint()] = peer;
-    cout << "App: Added sticky peer " << peer.myEndpoint.getEndpoint() << " " << myPeers.size() << endl;
+    myPeerCands[key] = pc;
+    cout << "App: Added peer candidate " << key << " " << myPeerCands.size() << endl;
+    //debugPrintPeerCands();
+}
+
+void NodeApp::debugPrintPeerCands()
+{
+    cout << "PeerCands: " << myPeerCands.size() << "  ";
+    for (auto i = myPeerCands.begin(); i != myPeerCands.end(); ++i)
+    {
+        cout << "[" << i->first << " " << i->second.myStickyFlag << " " << i->second.myConnTryCount << ":" << i->second.myConnectedCount << "] ";
+    }
+    cout << endl;
+}
+
+void NodeApp::debugPrintPeers()
+{
+    cout << "Peers: " << myPeers.size() << "  ";
+    for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
+    {
+        cout << "[" << i->first << " " << (i->second.myOutClient == nullptr ? "n" : (i->second.myOutClient->isConnected() ? "Y" : "N")) << "] ";
+    }
+    cout << endl;
 }
 
 void NodeApp::tryOutConnections()
 {
     //cout << "NodeApp::tryOutConnections" << endl;
     // try to connect to clients
-    for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
+    for (auto i = myPeerCands.begin(); i != myPeerCands.end(); ++i)
     {
-        //cout << i->second.myOutFlag << " " << i->second.myStickyOutFlag << " " << i->second.myOutConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myEndpoint.getEndpoint() << endl;
-        if (i->second.myOutFlag)
+        //cout << i->second.myOutFlag << " " << i->second.myStickyFlag << " " << i->second.myConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myEndpoint.getEndpoint() << endl;
+        if (i->second.myConnTryCount == 0 || i->second.myStickyFlag)
         {
-            if (i->second.myOutConnTryCount == 0 || i->second.myStickyOutFlag)
+            if (!isPeerOutConnected(i->first))
             {
                 // try outgoing connection
-                //cout << "Trying out conn to " << i->second.myEndpoint.getEndpoint() << endl;
-                if (i->second.myOutClient == nullptr)
+                ++i->second.myConnTryCount;
+                int res = tryOutConnection(i->second.myHost, i->second.myPort);
+                if (!res)
                 {
-                    auto peerout = make_shared<PeerClientOut>(this, i->second.myEndpoint.getHost(), i->second.myEndpoint.getPort());
-                    i->second.setOutClient(peerout);
-                }
-                //cout << "isConnected " << i->second.myOutClient->isConnected() << endl;
-                ++i->second.myOutConnTryCount;
-                if (!i->second.myOutClient->isConnected())
-                {
-                    int res = i->second.myOutClient->connect();
-                    if (res)
-                    {
-                        // error
-                    }
+                    // success
+                    ++i->second.myConnectedCount;
                 }
             }
         }
     }
+}
+
+bool NodeApp::isPeerOutConnected(string peerAddr_in)
+{
+    if (myPeers.find(peerAddr_in) == myPeers.end())
+    {
+        // no such peer
+        return false;
+    }
+    if (myPeers[peerAddr_in].myOutClient == nullptr)
+    {
+        // no out client
+        return false;
+    }
+    return myPeers[peerAddr_in].myOutClient->isConnected();
+}
+
+int NodeApp::tryOutConnection(std::string host_in, int port_in)
+{
+    // try outgoing connection
+    Endpoint ep = Endpoint(host_in, port_in);
+    string key = ep.getEndpoint();
+    //cout << "Trying outgoing conn to " << key << endl;
+    auto peerout = make_shared<PeerClientOut>(this, host_in, port_in);
+    if (myPeers.find(key) == myPeers.end())
+    {
+        myPeers[key] = PeerInfo();
+    }
+    myPeers[key].setOutClient(peerout);
+    int res = peerout->connect();
+    if (res)
+    {
+        cerr << "Error from peer connect, " << res << endl;
+        return res;
+    }
+    //debugPrintPeers();
+    return 0;
 }
 
 void NodeApp::stop()
@@ -150,7 +190,7 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     cout << "App: New incoming connection: " << cliaddr << endl;
     if (myPeers.find(cliaddr) == myPeers.end())
     {
-        myPeers[cliaddr] = PeerInfo(Endpoint(cliaddr));
+        myPeers[cliaddr] = PeerInfo();
     }
     auto cliIn = dynamic_pointer_cast<NetClientIn>(client_in);
     if (cliIn == nullptr)
@@ -158,6 +198,7 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
         cerr << "Error null incoming client" << endl;
     }
     myPeers[cliaddr].setInClient(cliIn);
+    //debugPrintPeers();
 }
 
 void NodeApp::connectionClosed(NetClientBase* client_in)
@@ -183,7 +224,7 @@ void NodeApp::connectionClosed(NetClientBase* client_in)
         changed = false;
         for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
         {
-            if (i->second.myOutClient == nullptr && i->second.myInClient == nullptr && !i->second.myStickyOutFlag)
+            if (i->second.myOutClient == nullptr && i->second.myInClient == nullptr)
             {
                 cout << "Removing disconnected client " << myPeers.size() << " " << i->first << endl;
                 myPeers.erase(i->first);
@@ -221,7 +262,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                 {
                     string port = reportedPeerName.substr(1);
                     string host = Endpoint(client_in.getPeerAddr()).getHost();
-                    addOutPeer(host, stoi(port), false);
+                    addOutPeerCandidate(host, stoi(port), false);
                 }
                 tryOutConnections();
                 //sendOtherPeers(client_in);
@@ -241,7 +282,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
             {
                 OtherPeerMessage const & peerMsg = dynamic_cast<OtherPeerMessage const &>(msg_in);
                 //cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
-                addOutPeer(peerMsg.getHost(), peerMsg.getPort(), false);
+                addOutPeerCandidate(peerMsg.getHost(), peerMsg.getPort(), false);
                 tryOutConnections();
             }
             break;
@@ -259,7 +300,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
 void NodeApp::sendOtherPeers(NetClientBase & client_in)
 {
     // send current outgoing connection addresses
-    auto peers = getOutPeers();
+    auto peers = getConnectedPeers();
     //cout << "NodeApp::sendOtherPeers " << peers.size() << " " << client_in.getPeerAddr() << endl;
     for(auto i = peers.begin(); i != peers.end(); ++i)
     {
@@ -277,14 +318,16 @@ void NodeApp::sendOtherPeers(NetClientBase & client_in)
     }
 }
 
-vector<Endpoint> NodeApp::getOutPeers() const
+vector<Endpoint> NodeApp::getConnectedPeers() const
 {
     vector<Endpoint> peers;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.myOutFlag && i->second.myOutClient != nullptr && i->second.myOutClient->isConnected())
+        // TODO if  ((i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()) ||
+        //    ((i->second.myInClient != nullptr && i->second.myInClient->isConnected())))
+        if ((i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()))
         {
-            peers.push_back(i->second.myEndpoint);
+            peers.push_back(i->first);
         }
     }
     return peers;
