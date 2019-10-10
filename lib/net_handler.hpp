@@ -22,6 +22,7 @@ namespace sample
         int startWithListen(int port_in, int tryNextPorts_in);
         int stop();
         void onNewConnection(uv_stream_t* server, int status);
+        /// Obtain the remote endpoint (host:port) of a connected socket
         static std::string getRemoteAddress(const uv_tcp_t* socket_in);
 
     private:

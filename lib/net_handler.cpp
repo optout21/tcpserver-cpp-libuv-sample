@@ -217,7 +217,7 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
             return addr;
         }
         addr = string(remoteIp) + ":" + to_string(((struct sockaddr_in6*)&sockaddr)->sin6_port);
-        return addr;        
+        return addr;
     }
     return addr;
 }

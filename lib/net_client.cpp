@@ -318,7 +318,6 @@ void NetClientOut::onConnect(uv_connect_t* req, int status)
     string remoteAddr = NetHandler::getRemoteAddress((uv_tcp_t*)req->handle);
 
     myState = State::Connected;
-
     cout << "Connected to " << myHost << ":" << myPort << " (" << remoteAddr << ")" << endl;
     process();
 }
