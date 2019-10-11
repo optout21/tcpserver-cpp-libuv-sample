@@ -208,7 +208,7 @@ void NetClientBase::alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_
 
 void NetClientBase::onRead(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
-    //cout << "onRead " << nread << endl;
+    //cout << "onRead " << myPeerAddr << " " << nread << endl;
     if (nread < 0)
     {
         string errtxt = ::uv_strerror(nread);

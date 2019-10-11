@@ -38,6 +38,7 @@ namespace sample
         NetClientBase(BaseApp* app_in, std::string const & peerAddr_in);
         virtual ~NetClientBase();
 	    std::string getPeerAddr() const { return myPeerAddr; }
+	    void setPeerAddr(std::string peerAddr_in) { myPeerAddr = peerAddr_in; }
         // Send a message to this peer
         int sendMessage(BaseMessage const & msg_in);
         int close();

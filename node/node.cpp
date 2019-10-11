@@ -69,14 +69,16 @@ void NodeApp::start(AppParams const & appParams_in)
         }
     }
 
-    int actualPort = myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
-    if (actualPort <= 0) return;
-    myName = ":" + to_string(actualPort);
+    //int actualPort =
+    myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
+    //if (actualPort <= 0) return;
+    //myName = ":" + to_string(port);
 }
 
 void NodeApp::listenStarted(int port)
 {
     cout << "App: Listening on port " << port << endl;
+    myName = ":" + to_string(port);
     // try to connect to clients
     tryOutConnections();
 }
@@ -111,7 +113,9 @@ void NodeApp::debugPrintPeers()
     cout << "Peers: " << myPeers.size() << "  ";
     for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        cout << "[" << i->first << " " << (i->second.myOutClient == nullptr ? "n" : (i->second.myOutClient->isConnected() ? "Y" : "N")) << "] ";
+        cout << "[" << i->first << " " <<
+            (i->second.myOutClient == nullptr ? "n" : (i->second.myOutClient->isConnected() ? "Y" : "N")) << " " <<
+            (i->second.myInClient == nullptr ? "n" : (i->second.myInClient->isConnected() ? "Y" : "N")) << "] ";
     }
     cout << endl;
 }
@@ -162,7 +166,7 @@ int NodeApp::tryOutConnection(std::string host_in, int port_in)
     {
         if (host_in == "localhost" || host_in == "127.0.0.1" || host_in == "::1" || host_in == "[::1]")
         {
-            cerr << "Ignoring peer candidate to self (" << host_in << ":" << port_in << ")" << endl;
+            //cerr << "Ignoring peer candidate to self (" << host_in << ":" << port_in << ")" << endl;
             return 0;
         }
     }
@@ -262,17 +266,49 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                     client_in.close();
                     return;
                 }
-                HandshakeResponseMessage resp("V01", myName, client_in.getPeerAddr());
-                client_in.sendMessage(resp);
-                // try to connect ougoing too, host taken from actual remote peer, port reported by peer
-                string reportedPeerName = hsMsg.getMyAddr();
-                if (reportedPeerName.substr(0, 1) == ":")
+
+                string peerEp = client_in.getPeerAddr();
+                if (myPeers.find(peerEp) == myPeers.end())
                 {
-                    string port = reportedPeerName.substr(1);
-                    string host = Endpoint(client_in.getPeerAddr()).getHost();
-                    addOutPeerCandidate(host, stoi(port), false);
+                    cerr << "Error: cannot find client in peers list " << peerEp << endl;
+                    return;
                 }
-                tryOutConnections();
+
+                HandshakeResponseMessage resp("V01", myName, peerEp);
+                client_in.sendMessage(resp);
+
+                // find canonical name of this peer: host is actual connected ip, port is reported by peer
+                int peerPort = Endpoint(peerEp).getPort();
+                string canonHost = Endpoint(peerEp).getHost();
+                int canonPort = peerPort;
+                string reportedPeerName = hsMsg.getMyAddr();
+                if (reportedPeerName.substr(0, 1) != ":")
+                {
+                    cerr << "Could not retrieve listening port of incoming peer " << client_in.getPeerAddr() << " " << reportedPeerName << endl;
+                }
+                else
+                {
+                    canonPort = stoi(reportedPeerName.substr(1));
+                    string canonEp = canonHost + ":" + to_string(canonPort);
+                    if (canonEp != peerEp)
+                    {
+                        // canonical is different
+                        cout << "Canonical peer of " << peerEp << " is " << canonEp << endl;
+                        //client_in.setPeerAddr(canonEp);
+                        //if (myPeers.find(canonEp) == myPeers.end())
+                        //{
+                        //    myPeers[canonEp] = PeerInfo();
+                        //}
+                        //myPeers[canonEp].setInClient(myPeers[peerEp].myInClient);
+                        //myPeers[canonEp].myInHandshaked = true;
+                        //myPeers[peerEp].resetInClient();
+                        //myPeers.erase(peerEp);
+                        myPeers[peerEp].myInHandshaked = true;
+                        // try to connect ougoing too (to canonical peer addr)
+                        addOutPeerCandidate(canonHost, canonPort, false);
+                        tryOutConnections();
+                    }
+                }
                 //sendOtherPeers(client_in);
             }
             break;
@@ -331,9 +367,8 @@ vector<Endpoint> NodeApp::getConnectedPeers() const
     vector<Endpoint> peers;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        // TODO if  ((i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()) ||
-        //    ((i->second.myInClient != nullptr && i->second.myInClient->isConnected())))
-        if ((i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()))
+        if  ((i->second.myOutHandshaked && i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()) ||
+            ((i->second.myInHandshaked && i->second.myInClient != nullptr && i->second.myInClient->isConnected())))
         {
             peers.push_back(i->first);
         }

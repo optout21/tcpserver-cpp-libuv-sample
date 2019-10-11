@@ -71,6 +71,8 @@ namespace sample
             std::shared_ptr<PeerClientOut> myOutClient;
             // connection from this peer; may be null
             std::shared_ptr<NetClientIn> myInClient;
+            bool myOutHandshaked;
+            bool myInHandshaked;
         };
 
     private:
