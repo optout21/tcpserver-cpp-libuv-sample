@@ -24,6 +24,7 @@ namespace sample
         void onNewConnection(uv_stream_t* server, int status);
         /// Obtain the remote endpoint (host:port) of a connected socket
         static std::string getRemoteAddress(const uv_tcp_t* socket_in);
+        static void getRemoteAddressHostPort(const uv_tcp_t* socket_in, std::string & host_out, int & port_out);
 
     private:
         int startUvLoop();

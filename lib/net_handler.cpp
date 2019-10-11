@@ -187,7 +187,17 @@ void NetHandler::onNewConnection(uv_stream_t* server, int status)
 
 string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
 {
-    string addr("?");
+    string host;
+    int port;
+    getRemoteAddressHostPort(socket_in, host, port);
+    string addr = host + ":" + to_string(port);
+    return addr;
+}
+
+void NetHandler::getRemoteAddressHostPort(const uv_tcp_t* socket_in, string & host_out, int & port_out)
+{
+    host_out = "?";
+    port_out = 0;
     //uv_os_fd_t fd;
     //uv_fileno((uv_handle_t*)socket_in, &fd);
     struct sockaddr sockaddr;
@@ -196,7 +206,7 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
     if (res != 0)
     {
         cerr << "Error from uv_tcp_getpeername " << res << " " << ::uv_err_name(res) << endl;
-        return addr;
+        return;
     }
     if (sockaddr.sa_family == AF_INET)
     {
@@ -204,22 +214,24 @@ string NetHandler::getRemoteAddress(const uv_tcp_t* socket_in)
         //sockaddr.sin_addr.s_addr = ::ntohl(sockaddr.sin_addr.s_addr);
         if (::uv_inet_ntop(AF_INET, &(((struct sockaddr_in*)&sockaddr)->sin_addr), remoteIp, 256))
         {
-            return addr;
+            return;
         }
-        addr = string(remoteIp) + ":" + to_string(((struct sockaddr_in*)&sockaddr)->sin_port);
-        return addr;
+        host_out = remoteIp;
+        port_out = ((struct sockaddr_in*)&sockaddr)->sin_port;
+        return;
     }
     if (sockaddr.sa_family == AF_INET6)
     {
         char remoteIp[256];
         if (::uv_inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&sockaddr)->sin6_addr), remoteIp, 256))
         {
-            return addr;
+            return;
         }
-        addr = string(remoteIp) + ":" + to_string(((struct sockaddr_in6*)&sockaddr)->sin6_port);
-        return addr;
+        host_out = remoteIp;
+        port_out = ((struct sockaddr_in6*)&sockaddr)->sin6_port;
+        return;
     }
-    return addr;
+    return;
 }
 
 int NetHandler::doBindAndListen(int port_in)

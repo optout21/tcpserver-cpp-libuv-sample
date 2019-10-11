@@ -43,7 +43,7 @@ void ServerApp::stop()
 void ServerApp::inConnectionReceived(shared_ptr<NetClientBase>& client_in)
 {
     assert(client_in != nullptr);
-    string cliaddr = client_in->getPeerAddr();
+    string cliaddr = client_in->getNicePeerAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
     myClients[cliaddr] = client_in;
 }
@@ -65,7 +65,7 @@ void ServerApp::connectionClosed(NetClientBase* client_in)
 
 void ServerApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
-    cout << "App: Received: from " << client_in.getPeerAddr() << " '" << msg_in.toString() << "'" << endl;
+    cout << "App: Received: from " << client_in.getNicePeerAddr() << " '" << msg_in.toString() << "'" << endl;
     switch (msg_in.getType())
     {
         case MessageType::Handshake:

@@ -315,10 +315,20 @@ void NetClientOut::onConnect(uv_connect_t* req, int status)
     }
 
     // obtain connected remote IP
-    string remoteAddr = NetHandler::getRemoteAddress((uv_tcp_t*)req->handle);
+    string remoteHost;
+    int remotePort;
+    NetHandler::getRemoteAddressHostPort((uv_tcp_t*)req->handle, remoteHost, remotePort);
+    // obtain canonical endpoint: IP is connected remote IP, port is original port
+    string canonEp;
+    if (remoteHost != myHost)
+    {
+        canonEp = remoteHost + ":" + to_string(myPort);
+        cout << "Canonical endpoint of " << myHost << ":" << myPort << " is " << canonEp << endl;
+        setCanonPeerAddr(canonEp);
+    }
 
     myState = State::Connected;
-    cout << "Connected to " << myHost << ":" << myPort << " (" << remoteAddr << ")" << endl;
+    cout << "Connected to " << myHost << ":" << myPort << " (" << canonEp << " " << remoteHost << ":" << remotePort << ")" << endl;
     process();
 }
 

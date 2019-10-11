@@ -11,34 +11,26 @@ using namespace sample;
 using namespace std;
 
 
-NodeApp::PeerCandidateInfo::PeerCandidateInfo(std::string host_in, int port_in, bool sticky_in) :
+NodeApp::PeerCandidateInfo::PeerCandidateInfo(std::string host_in, int port_in, int toTry_in) :
 myHost(host_in),
 myPort(port_in),
-myStickyFlag(sticky_in),
+myToTry(toTry_in),
 myConnTryCount(0),
 myConnectedCount(0)
 {
 }
 
 
-void NodeApp::PeerInfo::setOutClient(std::shared_ptr<PeerClientOut>& outClient_in)
+void NodeApp::PeerInfo::setClient(std::shared_ptr<NetClientBase>& client_in)
 {
-    myOutClient = outClient_in;
+    myClient = client_in;
 }
 
-void NodeApp::PeerInfo::setInClient(std::shared_ptr<NetClientIn>& inClient_in)
-{
-    myInClient = inClient_in;
-}
 
-void NodeApp::PeerInfo::resetOutClient()
-{
-    myOutClient = nullptr;
-}
 
-void NodeApp::PeerInfo::resetInClient()
+void NodeApp::PeerInfo::resetClient()
 {
-    myOutClient = nullptr;
+    myClient = nullptr;
 }
 
 
@@ -54,7 +46,7 @@ void NodeApp::start(AppParams const & appParams_in)
     int n = 2;
     for (int i = 0; i < n; ++i)
     {
-        addOutPeerCandidate("localhost", 5000 + i, true);
+        addOutPeerCandidate("localhost", 5000 + i, 1);
     }
     // add extra peer candidates
     if (appParams_in.extraPeers.size() > 0)
@@ -64,15 +56,12 @@ void NodeApp::start(AppParams const & appParams_in)
             if (appParams_in.extraPeers[i].length() > 0)
             {
                 Endpoint extraPeerEp(appParams_in.extraPeers[i]);
-                addOutPeerCandidate(extraPeerEp.getHost(), extraPeerEp.getPort(), true);
+                addOutPeerCandidate(extraPeerEp.getHost(), extraPeerEp.getPort(), 1000000);
             }
         }
     }
 
-    //int actualPort =
     myNetHandler->startWithListen(appParams_in.listenPort, appParams_in.listenPortRange);
-    //if (actualPort <= 0) return;
-    //myName = ":" + to_string(port);
 }
 
 void NodeApp::listenStarted(int port)
@@ -84,13 +73,14 @@ void NodeApp::listenStarted(int port)
 }
 
 
-void NodeApp::addOutPeerCandidate(std::string host_in, int port_in, bool sticky_in)
+void NodeApp::addOutPeerCandidate(std::string host_in, int port_in, int toTry_in)
 {
-    PeerCandidateInfo pc = PeerCandidateInfo(host_in, port_in, sticky_in);
+    PeerCandidateInfo pc = PeerCandidateInfo(host_in, port_in, toTry_in);
     string key = host_in + ":" + to_string(port_in);
     if (myPeerCands.find(key) != myPeerCands.end())
     {
         // already present
+        myPeerCands[key].myToTry = toTry_in + myPeerCands[key].myConnTryCount;
         return;
     }
     myPeerCands[key] = pc;
@@ -103,7 +93,7 @@ void NodeApp::debugPrintPeerCands()
     cout << "PeerCands: " << myPeerCands.size() << "  ";
     for (auto i = myPeerCands.begin(); i != myPeerCands.end(); ++i)
     {
-        cout << "[" << i->first << " " << i->second.myStickyFlag << " " << i->second.myConnTryCount << ":" << i->second.myConnectedCount << "] ";
+        cout << "[" << i->first << " " << i->second.myToTry << " " << i->second.myConnTryCount << ":" << i->second.myConnectedCount << "] ";
     }
     cout << endl;
 }
@@ -113,9 +103,11 @@ void NodeApp::debugPrintPeers()
     cout << "Peers: " << myPeers.size() << "  ";
     for (auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        cout << "[" << i->first << " " <<
-            (i->second.myOutClient == nullptr ? "n" : (i->second.myOutClient->isConnected() ? "Y" : "N")) << " " <<
-            (i->second.myInClient == nullptr ? "n" : (i->second.myInClient->isConnected() ? "Y" : "N")) << "] ";
+        cout << "[";
+        if (i->myClient == nullptr)
+            cout << "n";
+        else
+            cout << i->myClient->getPeerAddr() << " " << i->myClient->getCanonPeerAddr() << " " << (i->myClient->isConnected() ? "Y" : "N") << "] ";
     }
     cout << endl;
 }
@@ -127,9 +119,9 @@ void NodeApp::tryOutConnections()
     for (auto i = myPeerCands.begin(); i != myPeerCands.end(); ++i)
     {
         //cout << i->second.myOutFlag << " " << i->second.myStickyFlag << " " << i->second.myConnTryCount << " " << (i->second.myOutClient == nullptr) << " " << i->second.myEndpoint.getEndpoint() << endl;
-        if (i->second.myConnTryCount == 0 || i->second.myStickyFlag)
+        if (i->second.myConnTryCount == 0 || i->second.myConnTryCount < i->second.myToTry)
         {
-            if (!isPeerOutConnected(i->first))
+            if (!isPeerConnected(i->first, true))
             {
                 // try outgoing connection
                 ++i->second.myConnTryCount;
@@ -144,19 +136,22 @@ void NodeApp::tryOutConnections()
     }
 }
 
-bool NodeApp::isPeerOutConnected(string peerAddr_in)
+bool NodeApp::isPeerConnected(string peerAddr_in, bool outDir_in)
 {
-    if (myPeers.find(peerAddr_in) == myPeers.end())
+    for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        // no such peer
-        return false;
+        if (i->myOutFlag == outDir_in)
+        {
+            if (i->myClient != nullptr)
+            {
+                if (i->myClient->getPeerAddr() == peerAddr_in || i->myClient->getCanonPeerAddr() == peerAddr_in)
+                {
+                    return true;
+                }
+            }
+        }
     }
-    if (myPeers[peerAddr_in].myOutClient == nullptr)
-    {
-        // no out client
-        return false;
-    }
-    return myPeers[peerAddr_in].myOutClient->isConnected();
+    return false;
 }
 
 int NodeApp::tryOutConnection(std::string host_in, int port_in)
@@ -175,11 +170,11 @@ int NodeApp::tryOutConnection(std::string host_in, int port_in)
     string key = ep.getEndpoint();
     //cout << "Trying outgoing conn to " << key << endl;
     auto peerout = make_shared<PeerClientOut>(this, host_in, port_in);
-    if (myPeers.find(key) == myPeers.end())
-    {
-        myPeers[key] = PeerInfo();
-    }
-    myPeers[key].setOutClient(peerout);
+    auto peerBase = dynamic_pointer_cast<NetClientBase>(peerout);
+    PeerInfo p;
+    p.setClient(peerBase);
+    p.myOutFlag = true;
+    myPeers.push_back(p);
     int res = peerout->connect();
     if (res)
     {
@@ -200,16 +195,10 @@ void NodeApp::inConnectionReceived(std::shared_ptr<NetClientBase>& client_in)
     assert(client_in != nullptr);
     string cliaddr = client_in->getPeerAddr();
     cout << "App: New incoming connection: " << cliaddr << endl;
-    if (myPeers.find(cliaddr) == myPeers.end())
-    {
-        myPeers[cliaddr] = PeerInfo();
-    }
-    auto cliIn = dynamic_pointer_cast<NetClientIn>(client_in);
-    if (cliIn == nullptr)
-    {
-        cerr << "Error null incoming client" << endl;
-    }
-    myPeers[cliaddr].setInClient(cliIn);
+    PeerInfo p;
+    p.setClient(client_in);
+    p.myOutFlag = false;
+    myPeers.push_back(p);
     //debugPrintPeers();
 }
 
@@ -217,16 +206,16 @@ void NodeApp::connectionClosed(NetClientBase* client_in)
 {
     assert(client_in != nullptr);
     string cliaddr = client_in->getPeerAddr();
-    cout << "App: Connection done: " << cliaddr << endl;
+    cout << "App: Connection done: " << cliaddr << " " << myPeers.size() << endl;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if (i->second.myInClient.get() == client_in)
+        if (i->myClient != nullptr)
         {
-            i->second.resetInClient();
-        }
-        if (i->second.myOutClient.get() == client_in)
-        {
-            i->second.resetOutClient();
+            if (i->myClient.get() == client_in || i->myClient->getPeerAddr() == cliaddr)
+            {
+                cout << "Removing disconnected client " << myPeers.size() << " " << i->myClient->getPeerAddr() << endl;
+                i->resetClient();
+            }
         }
     }
     // remove disconnected clients
@@ -236,23 +225,21 @@ void NodeApp::connectionClosed(NetClientBase* client_in)
         changed = false;
         for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
         {
-            if (i->second.myOutClient == nullptr && i->second.myInClient == nullptr)
+            if (i->myClient.get() == nullptr)
             {
-                cout << "Removing disconnected client " << myPeers.size() << " " << i->first << endl;
-                myPeers.erase(i->first);
-                //cout << "Removed disconnected client " << myPeers.size() << " " << i->first << endl;
+                myPeers.erase(i);
                 changed = true;
                 break; // for
             }
         }
-    } 
+    }
 }
 
 void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg_in)
 {
     if (msg_in.getType() != MessageType::OtherPeer)
     {
-        cout << "App: Received: from " << client_in.getPeerAddr() << " '" << msg_in.toString() << "'" << endl;
+        cout << "App: Received: from " << client_in.getNicePeerAddr() << " '" << msg_in.toString() << "'" << endl;
     }
     switch (msg_in.getType())
     {
@@ -268,7 +255,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                 }
 
                 string peerEp = client_in.getPeerAddr();
-                if (myPeers.find(peerEp) == myPeers.end())
+                if (!isPeerConnected(peerEp, false))
                 {
                     cerr << "Error: cannot find client in peers list " << peerEp << endl;
                     return;
@@ -294,22 +281,14 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
                     {
                         // canonical is different
                         cout << "Canonical peer of " << peerEp << " is " << canonEp << endl;
-                        //client_in.setPeerAddr(canonEp);
-                        //if (myPeers.find(canonEp) == myPeers.end())
-                        //{
-                        //    myPeers[canonEp] = PeerInfo();
-                        //}
-                        //myPeers[canonEp].setInClient(myPeers[peerEp].myInClient);
-                        //myPeers[canonEp].myInHandshaked = true;
-                        //myPeers[peerEp].resetInClient();
-                        //myPeers.erase(peerEp);
-                        myPeers[peerEp].myInHandshaked = true;
+                        client_in.setCanonPeerAddr(canonEp);
+
                         // try to connect ougoing too (to canonical peer addr)
-                        addOutPeerCandidate(canonHost, canonPort, false);
+                        addOutPeerCandidate(canonHost, canonPort, 1);
                         tryOutConnections();
                     }
                 }
-                //sendOtherPeers(client_in);
+                sendOtherPeers(client_in);
             }
             break;
 
@@ -326,7 +305,7 @@ void NodeApp::messageReceived(NetClientBase & client_in, BaseMessage const & msg
             {
                 OtherPeerMessage const & peerMsg = dynamic_cast<OtherPeerMessage const &>(msg_in);
                 //cout << "OtherPeer message received, " << peerMsg.getHost() << ":" << peerMsg.getPort() << " " << peerMsg.toString() << endl;
-                addOutPeerCandidate(peerMsg.getHost(), peerMsg.getPort(), false);
+                addOutPeerCandidate(peerMsg.getHost(), peerMsg.getPort(), 1);
                 tryOutConnections();
             }
             break;
@@ -364,14 +343,20 @@ void NodeApp::sendOtherPeers(NetClientBase & client_in)
 
 vector<Endpoint> NodeApp::getConnectedPeers() const
 {
-    vector<Endpoint> peers;
+    // collect in a map to discard duplicates
+    map<string, int> peers;
     for(auto i = myPeers.begin(); i != myPeers.end(); ++i)
     {
-        if  ((i->second.myOutHandshaked && i->second.myOutClient != nullptr && i->second.myOutClient->isConnected()) ||
-            ((i->second.myInHandshaked && i->second.myInClient != nullptr && i->second.myInClient->isConnected())))
+        if (i->myClient != nullptr && i->myClient->isConnected() && i->myClient->getCanonPeerAddr().length() > 0)
         {
-            peers.push_back(i->first);
+            peers[i->myClient->getCanonPeerAddr()] = 1;
         }
     }
-    return peers;
+    // convert to vector
+    vector<Endpoint> vec;
+    for(auto i = peers.begin(); i != peers.end(); ++i)
+    {
+        vec.push_back(Endpoint(i->first));
+    }
+    return vec;
 }

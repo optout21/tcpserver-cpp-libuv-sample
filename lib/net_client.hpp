@@ -38,7 +38,9 @@ namespace sample
         NetClientBase(BaseApp* app_in, std::string const & peerAddr_in);
         virtual ~NetClientBase();
 	    std::string getPeerAddr() const { return myPeerAddr; }
-	    void setPeerAddr(std::string peerAddr_in) { myPeerAddr = peerAddr_in; }
+	    std::string getCanonPeerAddr() const { return myCanonPeerAddr; }
+	    std::string getNicePeerAddr() const { return myCanonPeerAddr.length() > 0 ? myCanonPeerAddr : myPeerAddr; }
+	    void setCanonPeerAddr(std::string peerAddr_in) { myCanonPeerAddr = peerAddr_in; }
         // Send a message to this peer
         int sendMessage(BaseMessage const & msg_in);
         int close();
@@ -65,6 +67,7 @@ namespace sample
 
     private:
         std::string myPeerAddr;
+        std::string myCanonPeerAddr;
         std::string myReceiveBuffer;
         uv_tcp_t* myUvStream;
     };

@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <list>
 
 namespace sample
 {
@@ -26,9 +27,9 @@ namespace sample
     protected:
         /// Called when server is listening on a port already
         virtual void listenStarted(int port);
-        void addOutPeerCandidate(std::string host_in, int port_in, bool sticky_in);
+        void addOutPeerCandidate(std::string host_in, int port_in, int toTry_in);
         void tryOutConnections();
-        bool isPeerOutConnected(std::string peerAddr_in);
+        bool isPeerConnected(std::string peerAddr_in, bool outDir_in);
         int tryOutConnection(std::string host_in, int port_in);
         void debugPrintPeerCands();
         void debugPrintPeers();
@@ -47,32 +48,27 @@ namespace sample
         {
         public:
             PeerCandidateInfo() = default;
-            PeerCandidateInfo(std::string host_in, int port_in, bool sticky_in);
+            PeerCandidateInfo(std::string host_in, int port_in, int toTry_in);
 
         public:
             std::string myHost;
             int myPort;
-            int myConnTryCount;
-            int myConnectedCount;
-            bool myStickyFlag;
+            int myToTry; // how many times to try
+            int myConnTryCount; // no of connection trials
+            int myConnectedCount; // no of successful connections
         };
 
         class PeerInfo
         {
         public:
             PeerInfo() = default;
-            void setOutClient(std::shared_ptr<PeerClientOut>& outClient_in);
-            void setInClient(std::shared_ptr<NetClientIn>& inClient_in);
-            void resetOutClient();
-            void resetInClient();
+            void setClient(std::shared_ptr<NetClientBase>& client_in);
+            void resetClient();
 
         public:
-            // connection towards this peer; may be null
-            std::shared_ptr<PeerClientOut> myOutClient;
-            // connection from this peer; may be null
-            std::shared_ptr<NetClientIn> myInClient;
-            bool myOutHandshaked;
-            bool myInHandshaked;
+            // current connections
+            std::shared_ptr<NetClientBase> myClient;
+            bool myOutFlag;
         };
 
     private:
@@ -81,6 +77,6 @@ namespace sample
         // peer candidates (outgoing connections to try)
         std::map<std::string, PeerCandidateInfo> myPeerCands;
         // current peer connections
-        std::map<std::string, PeerInfo> myPeers;
+        std::list<PeerInfo> myPeers;
     };
 }
