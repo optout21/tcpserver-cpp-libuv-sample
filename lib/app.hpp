@@ -70,7 +70,7 @@ namespace sample
         /// Called when an incoming message is received
         void messageReceived(NetClientBase & client_in, BaseMessage const & msg_in);
         virtual std::string getName() { return myName; }
-        
+
     protected:
         NetHandler* myNetHandler;
         std::string myName;

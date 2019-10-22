@@ -404,5 +404,4 @@ void NetClientOut::process()
             assert(false);
             break;
     }
-    return;
 }

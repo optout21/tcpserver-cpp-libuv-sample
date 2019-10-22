@@ -1,6 +1,6 @@
 # TcpServer with LibUV Example
 
-A sample networking implementation, in C++, using libuv async I/O library.
+A sample networking implementation, in C++, using libuv async I/O library, including sample node implementation.
 
 ## Prerequisites
 * gcc
@@ -9,8 +9,8 @@ A sample networking implementation, in C++, using libuv async I/O library.
 
 ## Usage
 
-    git clone https://github.com/catenocrypt/tcpserver-libuv-sample.git
-    cd tcpserver-libuv-sample
+    git clone https://github.com/catenocrypt/tcpserver-cpp-libuv-sample.git
+    cd tcpserver-cpp-libuv-sample
     cmake .
     make
     ./tcp-libuv-server
